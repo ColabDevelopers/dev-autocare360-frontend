@@ -11,26 +11,59 @@ jobs:
 
     steps:
       - name: Checkout frontend repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Clone AutoCare360 repo
-        run: |
-          git clone https://github.com/ColabDevelopers/AutoCare360.git
-          cd AutoCare360
-
-          # Replace old frontend folder
-          rm -rf frontend
-          mkdir frontend
-
-          # Copy everything except .git
-          cp -r ../* frontend/ || true
-          rm -rf frontend/.git || true
-
-          # Commit and push
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Auto-sync frontend from dev-autocare360-frontend" || echo "No changes to commit"
-          git push origin main
+      - name: Validate GitHub Token
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "Error: PERSONAL_ACCESS_TOKEN secret is not set"
+            echo "Please add a Personal Access Token as a repository secret named 'PERSONAL_ACCESS_TOKEN'"
+            echo "The token should have 'repo' permissions to access the AutoCare360 repository"
+            exit 1
+          fi
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Clone and sync AutoCare360 repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          echo "Cloning AutoCare360 repository..."
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/ColabDevelopers/AutoCare360.git
+          cd AutoCare360
+
+          echo "Backing up existing frontend folder..."
+          if [ -d "frontend" ]; then
+            mv frontend frontend_backup_$(date +%s) || true
+          fi
+
+          echo "Creating new frontend folder..."
+          mkdir -p frontend
+
+          echo "Copying frontend files..."
+          # Copy all files except .git, .github, and node_modules
+          find .. -maxdepth 1 -not -name ".." -not -name ".git" -not -name ".github" -not -name "node_modules" -not -name "AutoCare360" -exec cp -r {} frontend/ \;
+
+          echo "Checking for changes..."
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes detected - sync not needed"
+            exit 0
+          fi
+
+          echo "Committing and pushing changes..."
+          COMMIT_SHA=$(cd .. && git rev-parse --short HEAD)
+          git commit -m "Auto-sync frontend from dev-autocare360-frontend
+
+          Source commit: ${COMMIT_SHA}
+          Synced at: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          
+          git push origin main
+          echo "✅ Frontend successfully synced to AutoCare360 repository"
