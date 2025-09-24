@@ -1,0 +1,36 @@
+name: Sync Frontend to AutoCare360
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout frontend repo
+        uses: actions/checkout@v3
+
+      - name: Clone AutoCare360 repo
+        run: |
+          git clone https://github.com/ColabDevelopers/AutoCare360.git
+          cd AutoCare360
+
+          # Replace old frontend folder
+          rm -rf frontend
+          mkdir frontend
+
+          # Copy everything except .git
+          cp -r ../* frontend/ || true
+          rm -rf frontend/.git || true
+
+          # Commit and push
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add .
+          git commit -m "Auto-sync frontend from dev-autocare360-frontend" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
