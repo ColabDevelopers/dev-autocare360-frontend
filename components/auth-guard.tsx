@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -18,22 +18,22 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
   useEffect(() => {
     const checkAuth = () => {
-      const userRole = localStorage.getItem("userRole")
-      const userEmail = localStorage.getItem("userEmail")
+      const userRole = localStorage.getItem('userRole')
+      const userEmail = localStorage.getItem('userEmail')
 
       if (!userRole || !userEmail) {
-        router.push("/login")
+        router.push('/login')
         return
       }
 
       if (!allowedRoles.includes(userRole)) {
         // Redirect to appropriate dashboard based on role
-        if (userRole === "admin") {
-          router.push("/admin/dashboard")
-        } else if (userRole === "employee") {
-          router.push("/employee/dashboard")
+        if (userRole === 'admin') {
+          router.push('/admin/dashboard')
+        } else if (userRole === 'employee') {
+          router.push('/employee/dashboard')
         } else {
-          router.push("/customer/dashboard")
+          router.push('/customer/dashboard')
         }
         return
       }

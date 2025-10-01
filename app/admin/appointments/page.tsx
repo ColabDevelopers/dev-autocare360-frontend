@@ -1,73 +1,85 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, Calendar, MoreHorizontal, Clock, CheckCircle, AlertCircle } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Search, Calendar, MoreHorizontal, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 
 const appointments = [
   {
     id: 1,
-    customerName: "John Doe",
-    customerEmail: "john.doe@email.com",
-    service: "Oil Change",
-    date: "2024-01-15",
-    time: "09:00",
-    status: "confirmed",
-    employee: "Mike Johnson",
-    vehicle: "2020 Honda Civic",
-    avatar: "/placeholder.svg?height=32&width=32",
+    customerName: 'John Doe',
+    customerEmail: 'john.doe@email.com',
+    service: 'Oil Change',
+    date: '2024-01-15',
+    time: '09:00',
+    status: 'confirmed',
+    employee: 'Mike Johnson',
+    vehicle: '2020 Honda Civic',
+    avatar: '/placeholder.svg?height=32&width=32',
   },
   {
     id: 2,
-    customerName: "Sarah Smith",
-    customerEmail: "sarah.smith@email.com",
-    service: "Brake Inspection",
-    date: "2024-01-15",
-    time: "11:30",
-    status: "in_progress",
-    employee: "John Smith",
-    vehicle: "2019 Toyota Camry",
-    avatar: "/placeholder.svg?height=32&width=32",
+    customerName: 'Sarah Smith',
+    customerEmail: 'sarah.smith@email.com',
+    service: 'Brake Inspection',
+    date: '2024-01-15',
+    time: '11:30',
+    status: 'in_progress',
+    employee: 'John Smith',
+    vehicle: '2019 Toyota Camry',
+    avatar: '/placeholder.svg?height=32&width=32',
   },
   {
     id: 3,
-    customerName: "Mike Wilson",
-    customerEmail: "mike.wilson@email.com",
-    service: "Engine Diagnostics",
-    date: "2024-01-15",
-    time: "14:00",
-    status: "pending",
-    employee: "Sarah Johnson",
-    vehicle: "2021 Ford F-150",
-    avatar: "/placeholder.svg?height=32&width=32",
+    customerName: 'Mike Wilson',
+    customerEmail: 'mike.wilson@email.com',
+    service: 'Engine Diagnostics',
+    date: '2024-01-15',
+    time: '14:00',
+    status: 'pending',
+    employee: 'Sarah Johnson',
+    vehicle: '2021 Ford F-150',
+    avatar: '/placeholder.svg?height=32&width=32',
   },
 ]
 
 export default function AppointmentsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
 
   const filteredAppointments = appointments.filter(
-    (appointment) =>
+    appointment =>
       appointment.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.vehicle.toLowerCase().includes(searchTerm.toLowerCase()),
+      appointment.vehicle.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "confirmed":
+      case 'confirmed':
         return <Badge variant="default">Confirmed</Badge>
-      case "in_progress":
+      case 'in_progress':
         return <Badge variant="secondary">In Progress</Badge>
-      case "pending":
+      case 'pending':
         return <Badge variant="outline">Pending</Badge>
-      case "completed":
+      case 'completed':
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
@@ -143,7 +155,7 @@ export default function AppointmentsPage() {
               <Input
                 placeholder="Search appointments..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-8"
               />
             </div>
@@ -163,22 +175,24 @@ export default function AppointmentsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAppointments.map((appointment) => (
+              {filteredAppointments.map(appointment => (
                 <TableRow key={appointment.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={appointment.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={appointment.avatar || '/placeholder.svg'} />
                         <AvatarFallback>
                           {appointment.customerName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
+                            .split(' ')
+                            .map(n => n[0])
+                            .join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="font-medium">{appointment.customerName}</div>
-                        <div className="text-sm text-muted-foreground">{appointment.customerEmail}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {appointment.customerEmail}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -204,7 +218,9 @@ export default function AppointmentsPage() {
                         <DropdownMenuItem>Edit Appointment</DropdownMenuItem>
                         <DropdownMenuItem>Reschedule</DropdownMenuItem>
                         <DropdownMenuItem>Contact Customer</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Cancel Appointment</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Cancel Appointment
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

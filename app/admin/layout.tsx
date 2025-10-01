@@ -1,13 +1,9 @@
-import type React from "react"
-import { AdminSidebar } from "@/components/admin/admin-sidebar"
-import { AdminHeader } from "@/components/admin/admin-header"
-import { AIChatbot } from "@/components/ai-chatbot/chatbot"
+import type React from 'react'
+import { AdminSidebar } from '@/components/admin/admin-sidebar'
+import { AdminHeader } from '@/components/admin/admin-header'
+import { AIChatbot } from '@/components/ai-chatbot/chatbot'
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background">
       <AdminSidebar />

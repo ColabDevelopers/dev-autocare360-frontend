@@ -1,39 +1,39 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Send, Search, MessageCircle } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Send, Search, MessageCircle } from 'lucide-react'
 
 const conversations = [
   {
     id: 1,
-    name: "John Doe",
-    role: "Customer",
-    lastMessage: "Thank you for the brake inspection update!",
-    time: "5 min ago",
+    name: 'John Doe',
+    role: 'Customer',
+    lastMessage: 'Thank you for the brake inspection update!',
+    time: '5 min ago',
     unread: 1,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     id: 2,
-    name: "Jane Smith",
-    role: "Customer",
-    lastMessage: "When will my oil change be ready?",
-    time: "1 hour ago",
+    name: 'Jane Smith',
+    role: 'Customer',
+    lastMessage: 'When will my oil change be ready?',
+    time: '1 hour ago',
     unread: 2,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     id: 3,
-    name: "Service Manager",
-    role: "Manager",
-    lastMessage: "Please prioritize the transmission service for Mike Johnson.",
-    time: "2 hours ago",
+    name: 'Service Manager',
+    role: 'Manager',
+    lastMessage: 'Please prioritize the transmission service for Mike Johnson.',
+    time: '2 hours ago',
     unread: 1,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
 ]
 
@@ -59,18 +59,18 @@ export default function EmployeeMessages() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {conversations.map((conversation) => (
+            {conversations.map(conversation => (
               <div
                 key={conversation.id}
                 className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer"
               >
                 <Avatar>
-                  <AvatarImage src={conversation.avatar || "/placeholder.svg"} />
+                  <AvatarImage src={conversation.avatar || '/placeholder.svg'} />
                   <AvatarFallback>
                     {conversation.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -83,7 +83,9 @@ export default function EmployeeMessages() {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">{conversation.role}</p>
-                  <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {conversation.lastMessage}
+                  </p>
                   <p className="text-xs text-muted-foreground">{conversation.time}</p>
                 </div>
               </div>
@@ -111,14 +113,17 @@ export default function EmployeeMessages() {
               <div className="flex justify-start">
                 <div className="bg-muted p-3 rounded-lg max-w-xs">
                   <p className="text-sm">
-                    Hi, I received your brake inspection update. Should I schedule the replacement now?
+                    Hi, I received your brake inspection update. Should I schedule the replacement
+                    now?
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">2:30 PM</p>
                 </div>
               </div>
               <div className="flex justify-end">
                 <div className="bg-primary text-primary-foreground p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">Yes, I'd recommend scheduling it within the next week for safety.</p>
+                  <p className="text-sm">
+                    Yes, I'd recommend scheduling it within the next week for safety.
+                  </p>
                   <p className="text-xs opacity-70 mt-1">2:32 PM</p>
                 </div>
               </div>

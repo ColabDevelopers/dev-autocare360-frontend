@@ -1,47 +1,47 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Calendar, Clock, User, DollarSign } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Calendar, Clock, User, DollarSign } from 'lucide-react'
 
 const projects = [
   {
     id: 1,
-    title: "Custom Exhaust System",
-    customer: "Alex Rodriguez",
-    vehicle: "2020 BMW M3",
-    status: "In Progress",
+    title: 'Custom Exhaust System',
+    customer: 'Alex Rodriguez',
+    vehicle: '2020 BMW M3',
+    status: 'In Progress',
     progress: 65,
-    startDate: "2024-01-15",
-    dueDate: "2024-02-01",
-    budget: "$2,500",
-    timeLogged: "18.5 hours",
+    startDate: '2024-01-15',
+    dueDate: '2024-02-01',
+    budget: '$2,500',
+    timeLogged: '18.5 hours',
   },
   {
     id: 2,
-    title: "Performance Tune",
-    customer: "Sarah Johnson",
-    vehicle: "2019 Audi RS6",
-    status: "Review",
+    title: 'Performance Tune',
+    customer: 'Sarah Johnson',
+    vehicle: '2019 Audi RS6',
+    status: 'Review',
     progress: 90,
-    startDate: "2024-01-10",
-    dueDate: "2024-01-25",
-    budget: "$1,800",
-    timeLogged: "12.0 hours",
+    startDate: '2024-01-10',
+    dueDate: '2024-01-25',
+    budget: '$1,800',
+    timeLogged: '12.0 hours',
   },
   {
     id: 3,
-    title: "Suspension Upgrade",
-    customer: "Mike Chen",
-    vehicle: "2021 Porsche 911",
-    status: "Planning",
+    title: 'Suspension Upgrade',
+    customer: 'Mike Chen',
+    vehicle: '2021 Porsche 911',
+    status: 'Planning',
     progress: 15,
-    startDate: "2024-02-05",
-    dueDate: "2024-02-20",
-    budget: "$3,200",
-    timeLogged: "2.5 hours",
+    startDate: '2024-02-05',
+    dueDate: '2024-02-20',
+    budget: '$3,200',
+    timeLogged: '2.5 hours',
   },
 ]
 
@@ -54,7 +54,7 @@ export default function EmployeeProjects() {
       </div>
 
       <div className="grid gap-6">
-        {projects.map((project) => (
+        {projects.map(project => (
           <Card key={project.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -66,7 +66,11 @@ export default function EmployeeProjects() {
                 </div>
                 <Badge
                   variant={
-                    project.status === "In Progress" ? "default" : project.status === "Review" ? "secondary" : "outline"
+                    project.status === 'In Progress'
+                      ? 'default'
+                      : project.status === 'Review'
+                        ? 'secondary'
+                        : 'outline'
                   }
                 >
                   {project.status}

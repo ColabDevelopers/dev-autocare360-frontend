@@ -1,4 +1,4 @@
-import { AIChatbot } from "@/components/ai-chatbot/chatbot"
+import { AIChatbot } from '@/components/ai-chatbot/chatbot'
 
 export default function ChatPage() {
   return (
@@ -27,7 +27,9 @@ export default function ChatPage() {
               <p className="text-sm text-muted-foreground">
                 I can help you book appointments for various automotive services.
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Try: "Book an oil change for January 18th at 10 AM"</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Try: "Book an oil change for January 18th at 10 AM"
+              </p>
             </div>
 
             <div className="p-4 border border-border rounded-lg">
@@ -35,7 +37,9 @@ export default function ChatPage() {
               <p className="text-sm text-muted-foreground">
                 Get details about our services, pricing, and estimated durations.
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Try: "How long does a brake service take?"</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Try: "How long does a brake service take?"
+              </p>
             </div>
           </div>
         </div>

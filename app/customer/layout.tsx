@@ -1,19 +1,15 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { AuthGuard } from "@/components/auth-guard"
-import { CustomerSidebar } from "@/components/customer/customer-sidebar"
-import { CustomerHeader } from "@/components/customer/customer-header"
-import { NotificationProvider } from "@/components/real-time/notification-provider"
+import { AuthGuard } from '@/components/auth-guard'
+import { CustomerSidebar } from '@/components/customer/customer-sidebar'
+import { CustomerHeader } from '@/components/customer/customer-header'
+import { NotificationProvider } from '@/components/real-time/notification-provider'
 
-export default function CustomerLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function CustomerLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AuthGuard allowedRoles={["customer"]}>
+    <AuthGuard allowedRoles={['customer']}>
       <NotificationProvider>
         <div className="flex h-screen bg-background">
           <CustomerSidebar />

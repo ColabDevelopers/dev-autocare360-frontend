@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,19 +12,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Bell, Search, MessageCircle, Settings, User } from "lucide-react"
+} from '@/components/ui/dropdown-menu'
+import { Bell, Search, MessageCircle, Settings, User } from 'lucide-react'
 
 export function EmployeeHeader() {
-  const [userEmail, setUserEmail] = useState("")
+  const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
-    const email = localStorage.getItem("userEmail") || ""
+    const email = localStorage.getItem('userEmail') || ''
     setUserEmail(email)
   }, [])
 
   const getInitials = (email: string) => {
-    return email.split("@")[0].slice(0, 2).toUpperCase()
+    return email.split('@')[0].slice(0, 2).toUpperCase()
   }
 
   return (
@@ -38,7 +38,10 @@ export function EmployeeHeader() {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input placeholder="Search jobs, customers..." className="pl-10 w-64 bg-background border-border" />
+            <Input
+              placeholder="Search jobs, customers..."
+              className="pl-10 w-64 bg-background border-border"
+            />
           </div>
 
           {/* Notifications */}

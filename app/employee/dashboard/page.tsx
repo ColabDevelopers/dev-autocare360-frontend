@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import {
   CalendarIcon,
   Clock,
@@ -16,78 +16,88 @@ import {
   Play,
   Pause,
   BarChart3,
-} from "lucide-react"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from "recharts"
+} from 'lucide-react'
+import {
+  Bar,
+  BarChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
 
 // Mock data
 const mockAssignedJobs = [
   {
     id: 1,
-    type: "Oil Change",
-    customer: "John Smith",
-    vehicle: "Toyota Camry 2020",
+    type: 'Oil Change',
+    customer: 'John Smith',
+    vehicle: 'Toyota Camry 2020',
     progress: 75,
-    status: "In Progress",
+    status: 'In Progress',
     estimatedHours: 0.5,
     loggedHours: 0.4,
-    dueDate: "2024-01-15",
+    dueDate: '2024-01-15',
   },
   {
     id: 2,
-    type: "Custom Exhaust System",
-    customer: "Sarah Johnson",
-    vehicle: "Toyota Camry 2020",
+    type: 'Custom Exhaust System',
+    customer: 'Sarah Johnson',
+    vehicle: 'Toyota Camry 2020',
     progress: 45,
-    status: "In Progress",
+    status: 'In Progress',
     estimatedHours: 8,
     loggedHours: 3.6,
-    dueDate: "2024-01-20",
+    dueDate: '2024-01-20',
   },
   {
     id: 3,
-    type: "Brake Inspection",
-    customer: "Mike Wilson",
-    vehicle: "Honda Civic 2019",
+    type: 'Brake Inspection',
+    customer: 'Mike Wilson',
+    vehicle: 'Honda Civic 2019',
     progress: 100,
-    status: "Completed",
+    status: 'Completed',
     estimatedHours: 2,
     loggedHours: 1.8,
-    dueDate: "2024-01-10",
+    dueDate: '2024-01-10',
   },
 ]
 
 const mockUpcomingAppointments = [
   {
     id: 1,
-    service: "Tire Rotation",
-    customer: "Alice Brown",
-    time: "10:00 AM",
-    vehicle: "Ford F-150 2021",
+    service: 'Tire Rotation',
+    customer: 'Alice Brown',
+    time: '10:00 AM',
+    vehicle: 'Ford F-150 2021',
   },
   {
     id: 2,
-    service: "AC Service",
-    customer: "Bob Davis",
-    time: "2:00 PM",
-    vehicle: "BMW X5 2020",
+    service: 'AC Service',
+    customer: 'Bob Davis',
+    time: '2:00 PM',
+    vehicle: 'BMW X5 2020',
   },
 ]
 
 const workloadData = [
-  { name: "Mon", hours: 8 },
-  { name: "Tue", hours: 7.5 },
-  { name: "Wed", hours: 8 },
-  { name: "Thu", hours: 6 },
-  { name: "Fri", hours: 8 },
-  { name: "Sat", hours: 4 },
-  { name: "Sun", hours: 0 },
+  { name: 'Mon', hours: 8 },
+  { name: 'Tue', hours: 7.5 },
+  { name: 'Wed', hours: 8 },
+  { name: 'Thu', hours: 6 },
+  { name: 'Fri', hours: 8 },
+  { name: 'Sat', hours: 4 },
+  { name: 'Sun', hours: 0 },
 ]
 
 const taskDistribution = [
-  { name: "Oil Changes", value: 35, color: "#3b82f6" },
-  { name: "Brake Services", value: 25, color: "#10b981" },
-  { name: "Custom Projects", value: 20, color: "#f59e0b" },
-  { name: "Inspections", value: 20, color: "#ef4444" },
+  { name: 'Oil Changes', value: 35, color: '#3b82f6' },
+  { name: 'Brake Services', value: 25, color: '#10b981' },
+  { name: 'Custom Projects', value: 20, color: '#f59e0b' },
+  { name: 'Inspections', value: 20, color: '#ef4444' },
 ]
 
 export default function EmployeeDashboard() {
@@ -100,7 +110,7 @@ export default function EmployeeDashboard() {
     let interval: NodeJS.Timeout
     if (activeTimer !== null) {
       interval = setInterval(() => {
-        setTimerSeconds((prev) => prev + 1)
+        setTimerSeconds(prev => prev + 1)
       }, 1000)
     }
     return () => clearInterval(interval)
@@ -110,7 +120,7 @@ export default function EmployeeDashboard() {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     const secs = seconds % 60
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
   const startTimer = (jobId: number) => {
@@ -125,24 +135,24 @@ export default function EmployeeDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Completed":
-        return "bg-green-500"
-      case "In Progress":
-        return "bg-blue-500"
-      case "Pending":
-        return "bg-yellow-500"
+      case 'Completed':
+        return 'bg-green-500'
+      case 'In Progress':
+        return 'bg-blue-500'
+      case 'Pending':
+        return 'bg-yellow-500'
       default:
-        return "bg-gray-500"
+        return 'bg-gray-500'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Completed":
+      case 'Completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />
-      case "In Progress":
+      case 'In Progress':
         return <Clock className="h-4 w-4 text-blue-500" />
-      case "Pending":
+      case 'Pending':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />
       default:
         return <Clock className="h-4 w-4 text-gray-500" />
@@ -154,8 +164,12 @@ export default function EmployeeDashboard() {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground text-balance">Good morning, Technician!</h1>
-          <p className="text-muted-foreground text-balance">You have 3 active jobs and 2 appointments today.</p>
+          <h1 className="text-3xl font-bold text-foreground text-balance">
+            Good morning, Technician!
+          </h1>
+          <p className="text-muted-foreground text-balance">
+            You have 3 active jobs and 2 appointments today.
+          </p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline">
@@ -228,7 +242,7 @@ export default function EmployeeDashboard() {
               <CardDescription>Track progress and log time for your assigned work</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockAssignedJobs.map((job) => (
+              {mockAssignedJobs.map(job => (
                 <div key={job.id} className="space-y-3 p-4 border border-border rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -240,7 +254,10 @@ export default function EmployeeDashboard() {
                         </p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className={`${getStatusColor(job.status)} text-white`}>
+                    <Badge
+                      variant="secondary"
+                      className={`${getStatusColor(job.status)} text-white`}
+                    >
                       {job.status}
                     </Badge>
                   </div>
@@ -271,7 +288,7 @@ export default function EmployeeDashboard() {
                   )}
 
                   <div className="flex space-x-2">
-                    {job.status === "In Progress" && (
+                    {job.status === 'In Progress' && (
                       <>
                         {activeTimer === job.id ? (
                           <Button variant="outline" size="sm" onClick={stopTimer}>
@@ -309,7 +326,7 @@ export default function EmployeeDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockUpcomingAppointments.map((appointment) => (
+                {mockUpcomingAppointments.map(appointment => (
                   <div
                     key={appointment.id}
                     className="flex items-center justify-between p-3 border border-border rounded-lg"
@@ -397,10 +414,13 @@ export default function EmployeeDashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="mt-4 space-y-2">
-                {taskDistribution.map((item) => (
+                {taskDistribution.map(item => (
                   <div key={item.name} className="flex items-center justify-between text-sm">
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
                       <span>{item.name}</span>
                     </div>
                     <span>{item.value}%</span>

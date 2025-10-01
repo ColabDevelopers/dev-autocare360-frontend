@@ -1,20 +1,20 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
-import { Car, Wrench, Shield, Loader2 } from "lucide-react"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { Car, Wrench, Shield, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -23,46 +23,50 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    console.log("[v0] Login attempt with email:", email)
+    console.log('[v0] Login attempt with email:', email)
 
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
     // Mock authentication - in real app, validate credentials
     if (email && password) {
       // Store user role in localStorage for demo
-      const role = email.includes("admin") ? "admin" : email.includes("employee") ? "employee" : "customer"
-      console.log("[v0] Determined role:", role, "for email:", email)
+      const role = email.includes('admin')
+        ? 'admin'
+        : email.includes('employee')
+          ? 'employee'
+          : 'customer'
+      console.log('[v0] Determined role:', role, 'for email:', email)
 
       try {
-        localStorage.setItem("userRole", role)
-        localStorage.setItem("userEmail", email)
+        localStorage.setItem('userRole', role)
+        localStorage.setItem('userEmail', email)
 
         // Verify storage was successful
-        const storedRole = localStorage.getItem("userRole")
-        const storedEmail = localStorage.getItem("userEmail")
+        const storedRole = localStorage.getItem('userRole')
+        const storedEmail = localStorage.getItem('userEmail')
 
-        console.log("[v0] Stored in localStorage - role:", storedRole, "email:", storedEmail)
+        console.log('[v0] Stored in localStorage - role:', storedRole, 'email:', storedEmail)
 
         // Add a small delay to ensure localStorage is fully committed
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 100))
 
         // Redirect based on role
-        if (role === "admin") {
-          console.log("[v0] Redirecting to admin dashboard")
-          router.push("/admin/dashboard")
-        } else if (role === "employee") {
-          console.log("[v0] Redirecting to employee dashboard")
-          router.push("/employee/dashboard")
+        if (role === 'admin') {
+          console.log('[v0] Redirecting to admin dashboard')
+          router.push('/admin/dashboard')
+        } else if (role === 'employee') {
+          console.log('[v0] Redirecting to employee dashboard')
+          router.push('/employee/dashboard')
         } else {
-          console.log("[v0] Redirecting to customer dashboard")
-          router.push("/customer/dashboard")
+          console.log('[v0] Redirecting to customer dashboard')
+          router.push('/customer/dashboard')
         }
       } catch (error) {
-        console.error("[v0] Error storing authentication data:", error)
+        console.error('[v0] Error storing authentication data:', error)
       }
     } else {
-      console.log("[v0] Login failed - missing email or password")
+      console.log('[v0] Login failed - missing email or password')
     }
 
     setIsLoading(false)
@@ -80,7 +84,9 @@ export default function LoginPage() {
             </div>
             <h1 className="text-2xl font-bold text-balance">AutoCare360</h1>
           </div>
-          <p className="text-muted-foreground text-balance">Professional service management system</p>
+          <p className="text-muted-foreground text-balance">
+            Professional service management system
+          </p>
         </div>
 
         {/* Login Card */}
@@ -100,7 +106,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   className="bg-input border-border"
                 />
@@ -113,7 +119,7 @@ export default function LoginPage() {
                   type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={e => setPassword(e.target.value)}
                   required
                   className="bg-input border-border"
                 />
@@ -123,21 +129,25 @@ export default function LoginPage() {
                 <Checkbox
                   id="remember"
                   checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  onCheckedChange={checked => setRememberMe(checked as boolean)}
                 />
                 <Label htmlFor="remember" className="text-sm text-muted-foreground">
                   Remember me
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
                   </>
                 ) : (
-                  "Sign In"
+                  'Sign In'
                 )}
               </Button>
             </form>
@@ -175,16 +185,19 @@ export default function LoginPage() {
 
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">
-                New customer?{" "}
+                New customer?{' '}
                 <Button
                   variant="link"
                   className="p-0 h-auto text-primary hover:text-primary/80"
-                  onClick={() => router.push("/signup")}
+                  onClick={() => router.push('/signup')}
                 >
                   Create an account
                 </Button>
               </p>
-              <Button variant="link" className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground">
+              <Button
+                variant="link"
+                className="p-0 h-auto text-sm text-muted-foreground hover:text-foreground"
+              >
                 Forgot your password?
               </Button>
             </div>

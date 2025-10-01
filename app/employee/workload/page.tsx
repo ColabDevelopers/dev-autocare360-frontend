@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BarChart3, TrendingUp, Clock, Target } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import {
   Bar,
   BarChart,
@@ -17,82 +17,83 @@ import {
   PieChart,
   Pie,
   Cell,
-} from "recharts"
+} from 'recharts'
 
 // Mock data
 const weeklyHours = [
-  { day: "Mon", planned: 8, actual: 8.5, efficiency: 106 },
-  { day: "Tue", planned: 8, actual: 7.5, efficiency: 94 },
-  { day: "Wed", planned: 8, actual: 8.2, efficiency: 103 },
-  { day: "Thu", planned: 8, actual: 6.8, efficiency: 85 },
-  { day: "Fri", planned: 8, actual: 8.0, efficiency: 100 },
-  { day: "Sat", planned: 4, actual: 4.2, efficiency: 105 },
-  { day: "Sun", planned: 0, actual: 0, efficiency: 0 },
+  { day: 'Mon', planned: 8, actual: 8.5, efficiency: 106 },
+  { day: 'Tue', planned: 8, actual: 7.5, efficiency: 94 },
+  { day: 'Wed', planned: 8, actual: 8.2, efficiency: 103 },
+  { day: 'Thu', planned: 8, actual: 6.8, efficiency: 85 },
+  { day: 'Fri', planned: 8, actual: 8.0, efficiency: 100 },
+  { day: 'Sat', planned: 4, actual: 4.2, efficiency: 105 },
+  { day: 'Sun', planned: 0, actual: 0, efficiency: 0 },
 ]
 
 const monthlyTrend = [
-  { week: "Week 1", hours: 42, efficiency: 95 },
-  { week: "Week 2", hours: 38, efficiency: 88 },
-  { week: "Week 3", hours: 44, efficiency: 102 },
-  { week: "Week 4", hours: 41, efficiency: 94 },
+  { week: 'Week 1', hours: 42, efficiency: 95 },
+  { week: 'Week 2', hours: 38, efficiency: 88 },
+  { week: 'Week 3', hours: 44, efficiency: 102 },
+  { week: 'Week 4', hours: 41, efficiency: 94 },
 ]
 
 const taskBreakdown = [
-  { name: "Oil Changes", hours: 12, color: "#3b82f6" },
-  { name: "Brake Services", hours: 8, color: "#10b981" },
-  { name: "Custom Projects", hours: 15, color: "#f59e0b" },
-  { name: "Inspections", hours: 6, color: "#ef4444" },
-  { name: "Diagnostics", hours: 4, color: "#8b5cf6" },
+  { name: 'Oil Changes', hours: 12, color: '#3b82f6' },
+  { name: 'Brake Services', hours: 8, color: '#10b981' },
+  { name: 'Custom Projects', hours: 15, color: '#f59e0b' },
+  { name: 'Inspections', hours: 6, color: '#ef4444' },
+  { name: 'Diagnostics', hours: 4, color: '#8b5cf6' },
 ]
 
 const currentWorkload = [
   {
     id: 1,
-    project: "Custom Exhaust System",
-    customer: "Sarah Johnson",
-    priority: "High",
+    project: 'Custom Exhaust System',
+    customer: 'Sarah Johnson',
+    priority: 'High',
     progress: 65,
     estimatedHours: 8,
     loggedHours: 5.2,
-    dueDate: "2024-01-20",
+    dueDate: '2024-01-20',
   },
   {
     id: 2,
-    project: "Oil Change",
-    customer: "John Smith",
-    priority: "Medium",
+    project: 'Oil Change',
+    customer: 'John Smith',
+    priority: 'Medium',
     progress: 80,
     estimatedHours: 0.5,
     loggedHours: 0.4,
-    dueDate: "2024-01-15",
+    dueDate: '2024-01-15',
   },
   {
     id: 3,
-    project: "AC Service",
-    customer: "Bob Davis",
-    priority: "Low",
+    project: 'AC Service',
+    customer: 'Bob Davis',
+    priority: 'Low',
     progress: 25,
     estimatedHours: 2,
     loggedHours: 0.5,
-    dueDate: "2024-01-22",
+    dueDate: '2024-01-22',
   },
 ]
 
 export default function WorkloadPage() {
   const totalHoursThisWeek = weeklyHours.reduce((sum, day) => sum + day.actual, 0)
-  const averageEfficiency = weeklyHours.reduce((sum, day) => sum + day.efficiency, 0) / weeklyHours.length
+  const averageEfficiency =
+    weeklyHours.reduce((sum, day) => sum + day.efficiency, 0) / weeklyHours.length
   const totalTaskHours = taskBreakdown.reduce((sum, task) => sum + task.hours, 0)
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "High":
-        return "bg-red-500/10 text-red-500"
-      case "Medium":
-        return "bg-yellow-500/10 text-yellow-500"
-      case "Low":
-        return "bg-green-500/10 text-green-500"
+      case 'High':
+        return 'bg-red-500/10 text-red-500'
+      case 'Medium':
+        return 'bg-yellow-500/10 text-yellow-500'
+      case 'Low':
+        return 'bg-green-500/10 text-green-500'
       default:
-        return "bg-gray-500/10 text-gray-500"
+        return 'bg-gray-500/10 text-gray-500'
     }
   }
 
@@ -101,7 +102,9 @@ export default function WorkloadPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground text-balance">Workload & Analytics</h1>
-          <p className="text-muted-foreground text-balance">Monitor your productivity and manage your work capacity.</p>
+          <p className="text-muted-foreground text-balance">
+            Monitor your productivity and manage your work capacity.
+          </p>
         </div>
       </div>
 
@@ -168,7 +171,7 @@ export default function WorkloadPage() {
                 <CardDescription>Current assignments and their progress</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {currentWorkload.map((project) => (
+                {currentWorkload.map(project => (
                   <div key={project.id} className="space-y-3 p-4 border border-border rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
@@ -225,10 +228,13 @@ export default function WorkloadPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="mt-4 space-y-2">
-                  {taskBreakdown.map((item) => (
+                  {taskBreakdown.map(item => (
                     <div key={item.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
                         <span>{item.name}</span>
                       </div>
                       <span>

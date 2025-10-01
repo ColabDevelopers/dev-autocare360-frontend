@@ -1,60 +1,72 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, Plus, MoreHorizontal, Wrench, DollarSign, Clock } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Search, Plus, MoreHorizontal, Wrench, DollarSign, Clock } from 'lucide-react'
 
 const services = [
   {
     id: 1,
-    name: "Oil Change",
-    category: "Maintenance",
+    name: 'Oil Change',
+    category: 'Maintenance',
     duration: 30,
     price: 49.99,
-    status: "active",
-    description: "Complete oil and filter change service",
+    status: 'active',
+    description: 'Complete oil and filter change service',
   },
   {
     id: 2,
-    name: "Brake Inspection",
-    category: "Safety",
+    name: 'Brake Inspection',
+    category: 'Safety',
     duration: 45,
     price: 89.99,
-    status: "active",
-    description: "Comprehensive brake system inspection",
+    status: 'active',
+    description: 'Comprehensive brake system inspection',
   },
   {
     id: 3,
-    name: "Engine Diagnostics",
-    category: "Diagnostics",
+    name: 'Engine Diagnostics',
+    category: 'Diagnostics',
     duration: 60,
     price: 129.99,
-    status: "active",
-    description: "Computer diagnostic scan and analysis",
+    status: 'active',
+    description: 'Computer diagnostic scan and analysis',
   },
   {
     id: 4,
-    name: "Tire Rotation",
-    category: "Maintenance",
+    name: 'Tire Rotation',
+    category: 'Maintenance',
     duration: 20,
     price: 29.99,
-    status: "inactive",
-    description: "Tire rotation and pressure check",
+    status: 'inactive',
+    description: 'Tire rotation and pressure check',
   },
 ]
 
 export default function ServicesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
 
   const filteredServices = services.filter(
-    (service) =>
+    service =>
       service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchTerm.toLowerCase()),
+      service.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -62,7 +74,9 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Service Management</h1>
-          <p className="text-muted-foreground">Manage service offerings, pricing, and availability</p>
+          <p className="text-muted-foreground">
+            Manage service offerings, pricing, and availability
+          </p>
         </div>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
@@ -115,7 +129,7 @@ export default function ServicesPage() {
               <Input
                 placeholder="Search services..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-8"
               />
             </div>
@@ -135,15 +149,15 @@ export default function ServicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredServices.map((service) => (
+              {filteredServices.map(service => (
                 <TableRow key={service.id}>
                   <TableCell className="font-medium">{service.name}</TableCell>
                   <TableCell>{service.category}</TableCell>
                   <TableCell>{service.duration} min</TableCell>
                   <TableCell>${service.price}</TableCell>
                   <TableCell>
-                    <Badge variant={service.status === "active" ? "default" : "secondary"}>
-                      {service.status === "active" ? "Active" : "Inactive"}
+                    <Badge variant={service.status === 'active' ? 'default' : 'secondary'}>
+                      {service.status === 'active' ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-xs truncate">{service.description}</TableCell>
@@ -159,7 +173,7 @@ export default function ServicesPage() {
                         <DropdownMenuItem>View Analytics</DropdownMenuItem>
                         <DropdownMenuItem>Duplicate</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
-                          {service.status === "active" ? "Deactivate" : "Delete"}
+                          {service.status === 'active' ? 'Deactivate' : 'Delete'}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -1,74 +1,94 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, CheckCircle, XCircle, Clock, MoreHorizontal, Shield, AlertCircle } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  MoreHorizontal,
+  Shield,
+  AlertCircle,
+} from 'lucide-react'
 
 const approvals = [
   {
     id: 1,
-    type: "Service Request",
-    title: "Additional Engine Work - Honda Civic",
-    requestedBy: "Mike Johnson",
-    customer: "John Doe",
+    type: 'Service Request',
+    title: 'Additional Engine Work - Honda Civic',
+    requestedBy: 'Mike Johnson',
+    customer: 'John Doe',
     amount: 850.0,
-    status: "pending",
-    priority: "high",
-    submittedDate: "2024-01-15",
-    description: "Customer requires additional engine work beyond initial scope",
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: 'pending',
+    priority: 'high',
+    submittedDate: '2024-01-15',
+    description: 'Customer requires additional engine work beyond initial scope',
+    avatar: '/placeholder.svg?height=32&width=32',
   },
   {
     id: 2,
-    type: "Overtime Request",
-    title: "Weekend Work Authorization",
-    requestedBy: "Sarah Johnson",
-    customer: "N/A",
+    type: 'Overtime Request',
+    title: 'Weekend Work Authorization',
+    requestedBy: 'Sarah Johnson',
+    customer: 'N/A',
     amount: 0,
-    status: "approved",
-    priority: "medium",
-    submittedDate: "2024-01-14",
-    description: "Request to work weekend to complete urgent brake repair",
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: 'approved',
+    priority: 'medium',
+    submittedDate: '2024-01-14',
+    description: 'Request to work weekend to complete urgent brake repair',
+    avatar: '/placeholder.svg?height=32&width=32',
   },
   {
     id: 3,
-    type: "Refund Request",
-    title: "Service Refund - Diagnostic Fee",
-    requestedBy: "John Smith",
-    customer: "Sarah Smith",
+    type: 'Refund Request',
+    title: 'Service Refund - Diagnostic Fee',
+    requestedBy: 'John Smith',
+    customer: 'Sarah Smith',
     amount: 129.99,
-    status: "rejected",
-    priority: "low",
-    submittedDate: "2024-01-13",
-    description: "Customer dissatisfied with diagnostic results",
-    avatar: "/placeholder.svg?height=32&width=32",
+    status: 'rejected',
+    priority: 'low',
+    submittedDate: '2024-01-13',
+    description: 'Customer dissatisfied with diagnostic results',
+    avatar: '/placeholder.svg?height=32&width=32',
   },
 ]
 
 export default function ApprovalsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
 
   const filteredApprovals = approvals.filter(
-    (approval) =>
+    approval =>
       approval.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       approval.requestedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      approval.type.toLowerCase().includes(searchTerm.toLowerCase()),
+      approval.type.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "approved":
+      case 'approved':
         return <Badge className="bg-green-100 text-green-800">Approved</Badge>
-      case "rejected":
+      case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>
-      case "pending":
+      case 'pending':
         return <Badge variant="secondary">Pending</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
@@ -77,11 +97,11 @@ export default function ApprovalsPage() {
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
-      case "high":
+      case 'high':
         return <Badge variant="destructive">High</Badge>
-      case "medium":
+      case 'medium':
         return <Badge variant="secondary">Medium</Badge>
-      case "low":
+      case 'low':
         return <Badge variant="outline">Low</Badge>
       default:
         return <Badge variant="outline">{priority}</Badge>
@@ -93,7 +113,9 @@ export default function ApprovalsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Approval Management</h1>
-          <p className="text-muted-foreground">Review and approve service requests, overtime, and refunds</p>
+          <p className="text-muted-foreground">
+            Review and approve service requests, overtime, and refunds
+          </p>
         </div>
       </div>
 
@@ -153,7 +175,7 @@ export default function ApprovalsPage() {
               <Input
                 placeholder="Search approvals..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-8"
               />
             </div>
@@ -175,31 +197,35 @@ export default function ApprovalsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredApprovals.map((approval) => (
+              {filteredApprovals.map(approval => (
                 <TableRow key={approval.id}>
                   <TableCell>
                     <div>
                       <div className="font-medium">{approval.title}</div>
-                      <div className="text-sm text-muted-foreground max-w-xs truncate">{approval.description}</div>
+                      <div className="text-sm text-muted-foreground max-w-xs truncate">
+                        {approval.description}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{approval.type}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={approval.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={approval.avatar || '/placeholder.svg'} />
                         <AvatarFallback className="text-xs">
                           {approval.requestedBy
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
+                            .split(' ')
+                            .map(n => n[0])
+                            .join('')}
                         </AvatarFallback>
                       </Avatar>
                       <span>{approval.requestedBy}</span>
                     </div>
                   </TableCell>
                   <TableCell>{approval.customer}</TableCell>
-                  <TableCell>{approval.amount > 0 ? `$${approval.amount.toFixed(2)}` : "N/A"}</TableCell>
+                  <TableCell>
+                    {approval.amount > 0 ? `$${approval.amount.toFixed(2)}` : 'N/A'}
+                  </TableCell>
                   <TableCell>{getPriorityBadge(approval.priority)}</TableCell>
                   <TableCell>{getStatusBadge(approval.status)}</TableCell>
                   <TableCell>{approval.submittedDate}</TableCell>
@@ -212,7 +238,7 @@ export default function ApprovalsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem>View Details</DropdownMenuItem>
-                        {approval.status === "pending" && (
+                        {approval.status === 'pending' && (
                           <>
                             <DropdownMenuItem className="text-green-600">
                               <CheckCircle className="w-4 h-4 mr-2" />

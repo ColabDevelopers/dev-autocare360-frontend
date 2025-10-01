@@ -1,34 +1,40 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Car, Wrench, Loader2, ArrowLeft } from "lucide-react"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Car, Wrench, Loader2, ArrowLeft } from 'lucide-react'
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    vehicleMake: "",
-    vehicleModel: "",
-    vehicleYear: "",
-    vehiclePlate: "",
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    vehicleMake: '',
+    vehicleModel: '',
+    vehicleYear: '',
+    vehiclePlate: '',
   })
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -38,12 +44,12 @@ export default function SignupPage() {
     setIsLoading(true)
 
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
     // Mock registration success
-    localStorage.setItem("userRole", "customer")
-    localStorage.setItem("userEmail", formData.email)
-    router.push("/customer/dashboard")
+    localStorage.setItem('userRole', 'customer')
+    localStorage.setItem('userEmail', formData.email)
+    router.push('/customer/dashboard')
 
     setIsLoading(false)
   }
@@ -67,7 +73,12 @@ export default function SignupPage() {
         <Card className="border-border/50 shadow-2xl">
           <CardHeader className="space-y-1">
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" onClick={() => router.push("/login")} className="p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/login')}
+                className="p-1"
+              >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
@@ -91,7 +102,7 @@ export default function SignupPage() {
                       id="name"
                       placeholder="Enter your full name"
                       value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      onChange={e => handleInputChange('name', e.target.value)}
                       required
                       className="bg-input border-border"
                     />
@@ -104,7 +115,7 @@ export default function SignupPage() {
                       type="email"
                       placeholder="Enter your email"
                       value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      onChange={e => handleInputChange('email', e.target.value)}
                       required
                       className="bg-input border-border"
                     />
@@ -117,7 +128,7 @@ export default function SignupPage() {
                       type="password"
                       placeholder="Create a password"
                       value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
+                      onChange={e => handleInputChange('password', e.target.value)}
                       required
                       className="bg-input border-border"
                     />
@@ -130,7 +141,7 @@ export default function SignupPage() {
                       type="tel"
                       placeholder="Enter your phone number"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                      onChange={e => handleInputChange('phone', e.target.value)}
                       required
                       className="bg-input border-border"
                     />
@@ -145,7 +156,7 @@ export default function SignupPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="vehicleMake">Make</Label>
-                    <Select onValueChange={(value) => handleInputChange("vehicleMake", value)}>
+                    <Select onValueChange={value => handleInputChange('vehicleMake', value)}>
                       <SelectTrigger className="bg-input border-border">
                         <SelectValue placeholder="Select make" />
                       </SelectTrigger>
@@ -168,7 +179,7 @@ export default function SignupPage() {
                       id="vehicleModel"
                       placeholder="e.g., Camry"
                       value={formData.vehicleModel}
-                      onChange={(e) => handleInputChange("vehicleModel", e.target.value)}
+                      onChange={e => handleInputChange('vehicleModel', e.target.value)}
                       required
                       className="bg-input border-border"
                     />
@@ -178,12 +189,12 @@ export default function SignupPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="vehicleYear">Year</Label>
-                    <Select onValueChange={(value) => handleInputChange("vehicleYear", value)}>
+                    <Select onValueChange={value => handleInputChange('vehicleYear', value)}>
                       <SelectTrigger className="bg-input border-border">
                         <SelectValue placeholder="Select year" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.from({ length: 25 }, (_, i) => 2024 - i).map((year) => (
+                        {Array.from({ length: 25 }, (_, i) => 2024 - i).map(year => (
                           <SelectItem key={year} value={year.toString()}>
                             {year}
                           </SelectItem>
@@ -198,7 +209,9 @@ export default function SignupPage() {
                       id="vehiclePlate"
                       placeholder="e.g., ABC-1234"
                       value={formData.vehiclePlate}
-                      onChange={(e) => handleInputChange("vehiclePlate", e.target.value.toUpperCase())}
+                      onChange={e =>
+                        handleInputChange('vehiclePlate', e.target.value.toUpperCase())
+                      }
                       required
                       className="bg-input border-border"
                     />
@@ -210,14 +223,14 @@ export default function SignupPage() {
                 <Checkbox
                   id="terms"
                   checked={acceptTerms}
-                  onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                  onCheckedChange={checked => setAcceptTerms(checked as boolean)}
                 />
                 <Label htmlFor="terms" className="text-sm text-muted-foreground">
-                  I agree to the{" "}
+                  I agree to the{' '}
                   <Button variant="link" className="p-0 h-auto text-primary hover:text-primary/80">
                     Terms of Service
-                  </Button>{" "}
-                  and{" "}
+                  </Button>{' '}
+                  and{' '}
                   <Button variant="link" className="p-0 h-auto text-primary hover:text-primary/80">
                     Privacy Policy
                   </Button>
@@ -235,18 +248,18 @@ export default function SignupPage() {
                     Creating account...
                   </>
                 ) : (
-                  "Create Account"
+                  'Create Account'
                 )}
               </Button>
             </form>
 
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
+                Already have an account?{' '}
                 <Button
                   variant="link"
                   className="p-0 h-auto text-primary hover:text-primary/80"
-                  onClick={() => router.push("/login")}
+                  onClick={() => router.push('/login')}
                 >
                   Sign in
                 </Button>

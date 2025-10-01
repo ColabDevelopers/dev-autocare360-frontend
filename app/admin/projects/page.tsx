@@ -1,80 +1,100 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, Plus, MoreHorizontal, FolderOpen, Clock, CheckCircle, AlertTriangle } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Progress } from '@/components/ui/progress'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Search,
+  Plus,
+  MoreHorizontal,
+  FolderOpen,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+} from 'lucide-react'
 
 const projects = [
   {
     id: 1,
-    title: "Engine Rebuild - Honda Civic",
-    customer: "John Doe",
-    assignedTo: "Mike Johnson",
-    status: "in_progress",
-    priority: "high",
+    title: 'Engine Rebuild - Honda Civic',
+    customer: 'John Doe',
+    assignedTo: 'Mike Johnson',
+    status: 'in_progress',
+    priority: 'high',
     progress: 65,
-    startDate: "2024-01-10",
-    dueDate: "2024-01-20",
+    startDate: '2024-01-10',
+    dueDate: '2024-01-20',
     estimatedHours: 40,
     actualHours: 26,
-    avatar: "/placeholder.svg?height=32&width=32",
+    avatar: '/placeholder.svg?height=32&width=32',
   },
   {
     id: 2,
-    title: "Transmission Service - Toyota Camry",
-    customer: "Sarah Smith",
-    assignedTo: "John Smith",
-    status: "pending",
-    priority: "medium",
+    title: 'Transmission Service - Toyota Camry',
+    customer: 'Sarah Smith',
+    assignedTo: 'John Smith',
+    status: 'pending',
+    priority: 'medium',
     progress: 0,
-    startDate: "2024-01-15",
-    dueDate: "2024-01-18",
+    startDate: '2024-01-15',
+    dueDate: '2024-01-18',
     estimatedHours: 8,
     actualHours: 0,
-    avatar: "/placeholder.svg?height=32&width=32",
+    avatar: '/placeholder.svg?height=32&width=32',
   },
   {
     id: 3,
-    title: "Complete Brake System Overhaul",
-    customer: "Mike Wilson",
-    assignedTo: "Sarah Johnson",
-    status: "completed",
-    priority: "high",
+    title: 'Complete Brake System Overhaul',
+    customer: 'Mike Wilson',
+    assignedTo: 'Sarah Johnson',
+    status: 'completed',
+    priority: 'high',
     progress: 100,
-    startDate: "2024-01-08",
-    dueDate: "2024-01-12",
+    startDate: '2024-01-08',
+    dueDate: '2024-01-12',
     estimatedHours: 12,
     actualHours: 14,
-    avatar: "/placeholder.svg?height=32&width=32",
+    avatar: '/placeholder.svg?height=32&width=32',
   },
 ]
 
 export default function ProjectsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
 
   const filteredProjects = projects.filter(
-    (project) =>
+    project =>
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.assignedTo.toLowerCase().includes(searchTerm.toLowerCase()),
+      project.assignedTo.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "completed":
+      case 'completed':
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case "in_progress":
+      case 'in_progress':
         return <Badge variant="default">In Progress</Badge>
-      case "pending":
+      case 'pending':
         return <Badge variant="outline">Pending</Badge>
-      case "on_hold":
+      case 'on_hold':
         return <Badge variant="secondary">On Hold</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
@@ -83,11 +103,11 @@ export default function ProjectsPage() {
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
-      case "high":
+      case 'high':
         return <Badge variant="destructive">High</Badge>
-      case "medium":
+      case 'medium':
         return <Badge variant="secondary">Medium</Badge>
-      case "low":
+      case 'low':
         return <Badge variant="outline">Low</Badge>
       default:
         return <Badge variant="outline">{priority}</Badge>
@@ -163,7 +183,7 @@ export default function ProjectsPage() {
               <Input
                 placeholder="Search projects..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-8"
               />
             </div>
@@ -184,7 +204,7 @@ export default function ProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProjects.map((project) => (
+              {filteredProjects.map(project => (
                 <TableRow key={project.id}>
                   <TableCell>
                     <div>
@@ -197,12 +217,12 @@ export default function ProjectsPage() {
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={project.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={project.avatar || '/placeholder.svg'} />
                         <AvatarFallback className="text-xs">
                           {project.customer
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
+                            .split(' ')
+                            .map(n => n[0])
+                            .join('')}
                         </AvatarFallback>
                       </Avatar>
                       <span>{project.customer}</span>
@@ -230,7 +250,9 @@ export default function ProjectsPage() {
                         <DropdownMenuItem>Edit Project</DropdownMenuItem>
                         <DropdownMenuItem>Update Progress</DropdownMenuItem>
                         <DropdownMenuItem>Assign Employee</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Archive Project</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">
+                          Archive Project
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

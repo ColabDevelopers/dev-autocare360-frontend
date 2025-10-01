@@ -1,7 +1,16 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Users, Car, Calendar, DollarSign, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import {
+  Users,
+  Car,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  BarChart3,
+} from 'lucide-react'
 
 export default function AdminDashboard() {
   return (

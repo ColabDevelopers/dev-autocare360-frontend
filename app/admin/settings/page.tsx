@@ -1,16 +1,22 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
-import { Settings, Bell, Shield, Database, Mail, Save, RefreshCw } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Separator } from '@/components/ui/separator'
+import { Settings, Bell, Shield, Database, Mail, Save, RefreshCw } from 'lucide-react'
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
@@ -63,7 +69,11 @@ export default function SettingsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="company-address">Company Address</Label>
-                <Textarea id="company-address" defaultValue="123 Main Street, Anytown, ST 12345" rows={3} />
+                <Textarea
+                  id="company-address"
+                  defaultValue="123 Main Street, Anytown, ST 12345"
+                  rows={3}
+                />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -94,7 +104,9 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Maintenance Mode</Label>
-                    <p className="text-sm text-muted-foreground">Enable maintenance mode to prevent customer access</p>
+                    <p className="text-sm text-muted-foreground">
+                      Enable maintenance mode to prevent customer access
+                    </p>
                   </div>
                   <Switch checked={maintenanceMode} onCheckedChange={setMaintenanceMode} />
                 </div>
@@ -117,7 +129,9 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Send email notifications for important events</p>
+                    <p className="text-sm text-muted-foreground">
+                      Send email notifications for important events
+                    </p>
                   </div>
                   <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
                 </div>
@@ -125,7 +139,9 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>SMS Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Send SMS notifications for urgent alerts</p>
+                    <p className="text-sm text-muted-foreground">
+                      Send SMS notifications for urgent alerts
+                    </p>
                   </div>
                   <Switch checked={smsNotifications} onCheckedChange={setSmsNotifications} />
                 </div>
@@ -190,7 +206,9 @@ export default function SettingsPage() {
                   <SelectContent>
                     <SelectItem value="low">Low - 6 characters minimum</SelectItem>
                     <SelectItem value="medium">Medium - 8 characters, mixed case</SelectItem>
-                    <SelectItem value="high">High - 12 characters, mixed case, numbers, symbols</SelectItem>
+                    <SelectItem value="high">
+                      High - 12 characters, mixed case, numbers, symbols
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -199,7 +217,9 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
-                <p className="text-sm text-muted-foreground">Require two-factor authentication for admin accounts</p>
+                <p className="text-sm text-muted-foreground">
+                  Require two-factor authentication for admin accounts
+                </p>
                 <Button variant="outline">Configure 2FA</Button>
               </div>
             </CardContent>
@@ -213,7 +233,9 @@ export default function SettingsPage() {
                 <Database className="w-5 h-5" />
                 <span>Backup & Recovery</span>
               </CardTitle>
-              <CardDescription>Configure automatic backups and data recovery options</CardDescription>
+              <CardDescription>
+                Configure automatic backups and data recovery options
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
@@ -249,7 +271,9 @@ export default function SettingsPage() {
 
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Manual Backup</h3>
-                <p className="text-sm text-muted-foreground">Create a backup of your data immediately</p>
+                <p className="text-sm text-muted-foreground">
+                  Create a backup of your data immediately
+                </p>
                 <div className="flex space-x-2">
                   <Button>
                     <Database className="w-4 h-4 mr-2" />

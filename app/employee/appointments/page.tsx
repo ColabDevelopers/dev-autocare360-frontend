@@ -1,43 +1,43 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, User, Phone } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Calendar, Clock, User, Phone } from 'lucide-react'
 
 const appointments = [
   {
     id: 1,
-    customer: "John Doe",
-    phone: "(555) 123-4567",
-    vehicle: "2022 Honda Civic",
-    service: "Oil Change",
-    date: "2024-01-20",
-    time: "09:00 AM",
-    status: "Confirmed",
-    duration: "1 hour",
+    customer: 'John Doe',
+    phone: '(555) 123-4567',
+    vehicle: '2022 Honda Civic',
+    service: 'Oil Change',
+    date: '2024-01-20',
+    time: '09:00 AM',
+    status: 'Confirmed',
+    duration: '1 hour',
   },
   {
     id: 2,
-    customer: "Jane Smith",
-    phone: "(555) 987-6543",
-    vehicle: "2020 Toyota Camry",
-    service: "Brake Inspection",
-    date: "2024-01-20",
-    time: "11:00 AM",
-    status: "In Progress",
-    duration: "2 hours",
+    customer: 'Jane Smith',
+    phone: '(555) 987-6543',
+    vehicle: '2020 Toyota Camry',
+    service: 'Brake Inspection',
+    date: '2024-01-20',
+    time: '11:00 AM',
+    status: 'In Progress',
+    duration: '2 hours',
   },
   {
     id: 3,
-    customer: "Mike Johnson",
-    phone: "(555) 456-7890",
-    vehicle: "2019 Ford F-150",
-    service: "Transmission Service",
-    date: "2024-01-20",
-    time: "02:00 PM",
-    status: "Pending",
-    duration: "3 hours",
+    customer: 'Mike Johnson',
+    phone: '(555) 456-7890',
+    vehicle: '2019 Ford F-150',
+    service: 'Transmission Service',
+    date: '2024-01-20',
+    time: '02:00 PM',
+    status: 'Pending',
+    duration: '3 hours',
   },
 ]
 
@@ -53,7 +53,7 @@ export default function EmployeeAppointments() {
       </div>
 
       <div className="grid gap-4">
-        {appointments.map((appointment) => (
+        {appointments.map(appointment => (
           <Card key={appointment.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -63,11 +63,11 @@ export default function EmployeeAppointments() {
                 </div>
                 <Badge
                   variant={
-                    appointment.status === "Confirmed"
-                      ? "outline"
-                      : appointment.status === "In Progress"
-                        ? "default"
-                        : "secondary"
+                    appointment.status === 'Confirmed'
+                      ? 'outline'
+                      : appointment.status === 'In Progress'
+                        ? 'default'
+                        : 'secondary'
                   }
                 >
                   {appointment.status}

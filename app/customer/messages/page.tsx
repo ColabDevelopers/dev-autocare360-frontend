@@ -1,39 +1,39 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Send, Search, MessageCircle } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Send, Search, MessageCircle } from 'lucide-react'
 
 const conversations = [
   {
     id: 1,
-    name: "Mike Johnson",
-    role: "Technician",
-    lastMessage: "Your brake inspection is complete. Please review the report.",
-    time: "2 min ago",
+    name: 'Mike Johnson',
+    role: 'Technician',
+    lastMessage: 'Your brake inspection is complete. Please review the report.',
+    time: '2 min ago',
     unread: 2,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     id: 2,
-    name: "Sarah Wilson",
-    role: "Service Advisor",
-    lastMessage: "Thank you for choosing our service. Your appointment is confirmed.",
-    time: "1 hour ago",
+    name: 'Sarah Wilson',
+    role: 'Service Advisor',
+    lastMessage: 'Thank you for choosing our service. Your appointment is confirmed.',
+    time: '1 hour ago',
     unread: 0,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     id: 3,
-    name: "AutoCare360 Support",
-    role: "Support Team",
+    name: 'AutoCare360 Support',
+    role: 'Support Team',
     lastMessage: "We've received your feedback and will address it promptly.",
-    time: "Yesterday",
+    time: 'Yesterday',
     unread: 0,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
 ]
 
@@ -59,18 +59,18 @@ export default function CustomerMessages() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {conversations.map((conversation) => (
+            {conversations.map(conversation => (
               <div
                 key={conversation.id}
                 className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer"
               >
                 <Avatar>
-                  <AvatarImage src={conversation.avatar || "/placeholder.svg"} />
+                  <AvatarImage src={conversation.avatar || '/placeholder.svg'} />
                   <AvatarFallback>
                     {conversation.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                      .split(' ')
+                      .map(n => n[0])
+                      .join('')}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -83,7 +83,9 @@ export default function CustomerMessages() {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">{conversation.role}</p>
-                  <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {conversation.lastMessage}
+                  </p>
                   <p className="text-xs text-muted-foreground">{conversation.time}</p>
                 </div>
               </div>
@@ -110,7 +112,9 @@ export default function CustomerMessages() {
               {/* Sample messages */}
               <div className="flex justify-start">
                 <div className="bg-muted p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">Hi! I've completed the brake inspection on your vehicle.</p>
+                  <p className="text-sm">
+                    Hi! I've completed the brake inspection on your vehicle.
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">10:30 AM</p>
                 </div>
               </div>
@@ -123,7 +127,8 @@ export default function CustomerMessages() {
               <div className="flex justify-start">
                 <div className="bg-muted p-3 rounded-lg max-w-xs">
                   <p className="text-sm">
-                    The front brake pads are at 20% and should be replaced soon. I've sent you a detailed report.
+                    The front brake pads are at 20% and should be replaced soon. I've sent you a
+                    detailed report.
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">10:35 AM</p>
                 </div>

@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import type React from "react"
+import type React from 'react'
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { useWebSocket, type WebSocketMessage } from "@/lib/websocket"
-import { toast } from "@/hooks/use-toast"
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useWebSocket, type WebSocketMessage } from '@/lib/websocket'
+import { toast } from '@/hooks/use-toast'
 
 interface NotificationContextType {
   notifications: WebSocketMessage[]
@@ -21,18 +21,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    console.log("[v0] NotificationProvider - WebSocket connected:", isConnected)
-    console.log("[v0] NotificationProvider - Messages received:", messages.length)
+    console.log('[v0] NotificationProvider - WebSocket connected:', isConnected)
+    console.log('[v0] NotificationProvider - Messages received:', messages.length)
 
     // Filter messages for notifications
     const newNotifications = messages.filter(
-      (msg) => msg.type === "service_update" || msg.type === "appointment_update" || msg.type === "notification",
+      msg =>
+        msg.type === 'service_update' ||
+        msg.type === 'appointment_update' ||
+        msg.type === 'notification'
     )
 
     if (newNotifications.length > notifications.length) {
       const latestNotification = newNotifications[newNotifications.length - 1]
 
-      console.log("[v0] NotificationProvider - New notification:", latestNotification)
+      console.log('[v0] NotificationProvider - New notification:', latestNotification)
 
       // Show toast for new notifications
       toast({
@@ -47,36 +50,36 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const getNotificationTitle = (type: string) => {
     switch (type) {
-      case "service_update":
-        return "Service Update"
-      case "appointment_update":
-        return "Appointment Update"
-      case "notification":
-        return "New Notification"
+      case 'service_update':
+        return 'Service Update'
+      case 'appointment_update':
+        return 'Appointment Update'
+      case 'notification':
+        return 'New Notification'
       default:
-        return "Update"
+        return 'Update'
     }
   }
 
   const getNotificationDescription = (notification: WebSocketMessage) => {
     switch (notification.type) {
-      case "service_update":
+      case 'service_update':
         return `Service #${notification.data.serviceId} status updated to ${notification.data.status}`
-      case "appointment_update":
+      case 'appointment_update':
         return `Appointment scheduled for ${notification.data.date}`
       default:
-        return notification.data.message || "You have a new update"
+        return notification.data.message || 'You have a new update'
     }
   }
 
   const markAsRead = (id: string) => {
-    console.log("[v0] NotificationProvider - Marking notification as read:", id)
+    console.log('[v0] NotificationProvider - Marking notification as read:', id)
     // Implementation for marking specific notification as read
-    setUnreadCount((prev) => Math.max(0, prev - 1))
+    setUnreadCount(prev => Math.max(0, prev - 1))
   }
 
   const clearAll = () => {
-    console.log("[v0] NotificationProvider - Clearing all notifications")
+    console.log('[v0] NotificationProvider - Clearing all notifications')
     setNotifications([])
     setUnreadCount(0)
   }
@@ -98,7 +101,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 export function useNotifications() {
   const context = useContext(NotificationContext)
   if (context === undefined) {
-    throw new Error("useNotifications must be used within a NotificationProvider")
+    throw new Error('useNotifications must be used within a NotificationProvider')
   }
   return context
 }

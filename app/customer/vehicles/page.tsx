@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -13,38 +13,51 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Car, Plus, Edit, Trash2, Calendar, Wrench } from "lucide-react"
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Car, Plus, Edit, Trash2, Calendar, Wrench } from 'lucide-react'
 
 // Mock data
 const mockVehicles = [
   {
     id: 1,
-    make: "Toyota",
-    model: "Camry",
+    make: 'Toyota',
+    model: 'Camry',
     year: 2020,
-    plate: "ABC-1234",
-    vin: "1HGBH41JXMN109186",
-    color: "Silver",
+    plate: 'ABC-1234',
+    vin: '1HGBH41JXMN109186',
+    color: 'Silver',
     mileage: 45000,
-    lastService: "2024-01-10",
-    nextService: "2024-04-10",
-    status: "Active",
+    lastService: '2024-01-10',
+    nextService: '2024-04-10',
+    status: 'Active',
   },
   {
     id: 2,
-    make: "Honda",
-    model: "Civic",
+    make: 'Honda',
+    model: 'Civic',
     year: 2019,
-    plate: "XYZ-5678",
-    vin: "2HGFC2F59JH123456",
-    color: "Blue",
+    plate: 'XYZ-5678',
+    vin: '2HGFC2F59JH123456',
+    color: 'Blue',
     mileage: 52000,
-    lastService: "2023-12-15",
-    nextService: "2024-03-15",
-    status: "Active",
+    lastService: '2023-12-15',
+    nextService: '2024-03-15',
+    status: 'Active',
   },
 ]
 
@@ -52,13 +65,13 @@ export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState(mockVehicles)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newVehicle, setNewVehicle] = useState({
-    make: "",
-    model: "",
-    year: "",
-    plate: "",
-    vin: "",
-    color: "",
-    mileage: "",
+    make: '',
+    model: '',
+    year: '',
+    plate: '',
+    vin: '',
+    color: '',
+    mileage: '',
   })
 
   const handleAddVehicle = () => {
@@ -67,25 +80,25 @@ export default function VehiclesPage() {
       ...newVehicle,
       year: Number.parseInt(newVehicle.year),
       mileage: Number.parseInt(newVehicle.mileage),
-      lastService: "N/A",
-      nextService: "TBD",
-      status: "Active",
+      lastService: 'N/A',
+      nextService: 'TBD',
+      status: 'Active',
     }
     setVehicles([...vehicles, vehicle])
     setNewVehicle({
-      make: "",
-      model: "",
-      year: "",
-      plate: "",
-      vin: "",
-      color: "",
-      mileage: "",
+      make: '',
+      model: '',
+      year: '',
+      plate: '',
+      vin: '',
+      color: '',
+      mileage: '',
     })
     setIsAddDialogOpen(false)
   }
 
   const handleDeleteVehicle = (id: number) => {
-    setVehicles(vehicles.filter((v) => v.id !== id))
+    setVehicles(vehicles.filter(v => v.id !== id))
   }
 
   return (
@@ -107,13 +120,15 @@ export default function VehiclesPage() {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Add New Vehicle</DialogTitle>
-              <DialogDescription>Enter your vehicle details to add it to your account.</DialogDescription>
+              <DialogDescription>
+                Enter your vehicle details to add it to your account.
+              </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="make">Make</Label>
-                  <Select onValueChange={(value) => setNewVehicle({ ...newVehicle, make: value })}>
+                  <Select onValueChange={value => setNewVehicle({ ...newVehicle, make: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select make" />
                     </SelectTrigger>
@@ -133,7 +148,7 @@ export default function VehiclesPage() {
                   <Input
                     id="model"
                     value={newVehicle.model}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
+                    onChange={e => setNewVehicle({ ...newVehicle, model: e.target.value })}
                     placeholder="e.g., Camry"
                   />
                 </div>
@@ -141,12 +156,12 @@ export default function VehiclesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
-                  <Select onValueChange={(value) => setNewVehicle({ ...newVehicle, year: value })}>
+                  <Select onValueChange={value => setNewVehicle({ ...newVehicle, year: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select year" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 25 }, (_, i) => 2024 - i).map((year) => (
+                      {Array.from({ length: 25 }, (_, i) => 2024 - i).map(year => (
                         <SelectItem key={year} value={year.toString()}>
                           {year}
                         </SelectItem>
@@ -159,7 +174,9 @@ export default function VehiclesPage() {
                   <Input
                     id="plate"
                     value={newVehicle.plate}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, plate: e.target.value.toUpperCase() })}
+                    onChange={e =>
+                      setNewVehicle({ ...newVehicle, plate: e.target.value.toUpperCase() })
+                    }
                     placeholder="e.g., ABC-1234"
                   />
                 </div>
@@ -169,7 +186,9 @@ export default function VehiclesPage() {
                 <Input
                   id="vin"
                   value={newVehicle.vin}
-                  onChange={(e) => setNewVehicle({ ...newVehicle, vin: e.target.value.toUpperCase() })}
+                  onChange={e =>
+                    setNewVehicle({ ...newVehicle, vin: e.target.value.toUpperCase() })
+                  }
                   placeholder="17-character VIN"
                   maxLength={17}
                 />
@@ -180,7 +199,7 @@ export default function VehiclesPage() {
                   <Input
                     id="color"
                     value={newVehicle.color}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, color: e.target.value })}
+                    onChange={e => setNewVehicle({ ...newVehicle, color: e.target.value })}
                     placeholder="e.g., Silver"
                   />
                 </div>
@@ -190,7 +209,7 @@ export default function VehiclesPage() {
                     id="mileage"
                     type="number"
                     value={newVehicle.mileage}
-                    onChange={(e) => setNewVehicle({ ...newVehicle, mileage: e.target.value })}
+                    onChange={e => setNewVehicle({ ...newVehicle, mileage: e.target.value })}
                     placeholder="e.g., 45000"
                   />
                 </div>
@@ -210,7 +229,7 @@ export default function VehiclesPage() {
 
       {/* Vehicles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {vehicles.map((vehicle) => (
+        {vehicles.map(vehicle => (
           <Card key={vehicle.id} className="border-border/50">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -257,7 +276,7 @@ export default function VehiclesPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    console.log("[v0] Edit vehicle clicked for:", vehicle.id)
+                    console.log('[v0] Edit vehicle clicked for:', vehicle.id)
                     // TODO: Implement edit vehicle functionality
                   }}
                 >
@@ -268,9 +287,9 @@ export default function VehiclesPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    console.log("[v0] Book service clicked for vehicle:", vehicle.id)
+                    console.log('[v0] Book service clicked for vehicle:', vehicle.id)
                     // TODO: Navigate to appointments page with vehicle pre-selected
-                    window.location.href = "/customer/appointments"
+                    window.location.href = '/customer/appointments'
                   }}
                 >
                   <Calendar className="mr-1 h-3 w-3" />
@@ -280,9 +299,9 @@ export default function VehiclesPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    console.log("[v0] Request project clicked for vehicle:", vehicle.id)
+                    console.log('[v0] Request project clicked for vehicle:', vehicle.id)
                     // TODO: Navigate to projects page with vehicle pre-selected
-                    window.location.href = "/customer/projects"
+                    window.location.href = '/customer/projects'
                   }}
                 >
                   <Wrench className="mr-1 h-3 w-3" />
@@ -307,7 +326,9 @@ export default function VehiclesPage() {
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle>Service History</CardTitle>
-          <CardDescription>Complete history of all services performed on your vehicles</CardDescription>
+          <CardDescription>
+            Complete history of all services performed on your vehicles
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>

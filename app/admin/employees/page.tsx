@@ -1,59 +1,71 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, MoreHorizontal, UserPlus, Clock, CheckCircle } from "lucide-react"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Search, MoreHorizontal, UserPlus, Clock, CheckCircle } from 'lucide-react'
 
 const employees = [
   {
     id: 1,
-    name: "John Smith",
-    email: "john.smith@autocare360.com",
-    role: "Senior Mechanic",
-    department: "Engine Repair",
-    status: "active",
+    name: 'John Smith',
+    email: 'john.smith@autocare360.com',
+    role: 'Senior Mechanic',
+    department: 'Engine Repair',
+    status: 'active',
     hoursThisWeek: 38,
     completedJobs: 12,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     id: 2,
-    name: "Sarah Johnson",
-    email: "sarah.johnson@autocare360.com",
-    role: "Diagnostic Specialist",
-    department: "Diagnostics",
-    status: "active",
+    name: 'Sarah Johnson',
+    email: 'sarah.johnson@autocare360.com',
+    role: 'Diagnostic Specialist',
+    department: 'Diagnostics',
+    status: 'active',
     hoursThisWeek: 40,
     completedJobs: 8,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
   {
     id: 3,
-    name: "Mike Wilson",
-    email: "mike.wilson@autocare360.com",
-    role: "Brake Specialist",
-    department: "Brake Service",
-    status: "on_leave",
+    name: 'Mike Wilson',
+    email: 'mike.wilson@autocare360.com',
+    role: 'Brake Specialist',
+    department: 'Brake Service',
+    status: 'on_leave',
     hoursThisWeek: 0,
     completedJobs: 0,
-    avatar: "/placeholder.svg?height=40&width=40",
+    avatar: '/placeholder.svg?height=40&width=40',
   },
 ]
 
 export default function EmployeesPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState('')
 
   const filteredEmployees = employees.filter(
-    (employee) =>
+    employee =>
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.role.toLowerCase().includes(searchTerm.toLowerCase()),
+      employee.role.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -114,7 +126,7 @@ export default function EmployeesPage() {
               <Input
                 placeholder="Search employees..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-8"
               />
             </div>
@@ -134,17 +146,17 @@ export default function EmployeesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEmployees.map((employee) => (
+              {filteredEmployees.map(employee => (
                 <TableRow key={employee.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={employee.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={employee.avatar || '/placeholder.svg'} />
                         <AvatarFallback>
                           {employee.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
+                            .split(' ')
+                            .map(n => n[0])
+                            .join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -156,8 +168,8 @@ export default function EmployeesPage() {
                   <TableCell>{employee.role}</TableCell>
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>
-                    <Badge variant={employee.status === "active" ? "default" : "secondary"}>
-                      {employee.status === "active" ? "Active" : "On Leave"}
+                    <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
+                      {employee.status === 'active' ? 'Active' : 'On Leave'}
                     </Badge>
                   </TableCell>
                   <TableCell>{employee.hoursThisWeek}h</TableCell>

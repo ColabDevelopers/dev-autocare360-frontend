@@ -1,78 +1,97 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Separator } from "@/components/ui/separator"
-import { Car, CalendarIcon, Clock, Wrench, CheckCircle, AlertCircle, TrendingUp, Plus } from "lucide-react"
-import { LiveProgress } from "@/components/real-time/live-progress"
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Separator } from '@/components/ui/separator'
+import {
+  Car,
+  CalendarIcon,
+  Clock,
+  Wrench,
+  CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  Plus,
+} from 'lucide-react'
+import { LiveProgress } from '@/components/real-time/live-progress'
 
 // Mock data
 const mockServices = [
   {
     id: 1,
-    type: "Oil Change",
-    vehicle: "Toyota Camry 2020",
+    type: 'Oil Change',
+    vehicle: 'Toyota Camry 2020',
     progress: 75,
-    status: "In Progress",
-    estimatedCompletion: "2024-01-15",
-    technician: "Mike Johnson",
+    status: 'In Progress',
+    estimatedCompletion: '2024-01-15',
+    technician: 'Mike Johnson',
   },
   {
     id: 2,
-    type: "Brake Inspection",
-    vehicle: "Honda Civic 2019",
+    type: 'Brake Inspection',
+    vehicle: 'Honda Civic 2019',
     progress: 100,
-    status: "Completed",
-    estimatedCompletion: "2024-01-10",
-    technician: "Sarah Wilson",
+    status: 'Completed',
+    estimatedCompletion: '2024-01-10',
+    technician: 'Sarah Wilson',
   },
   {
     id: 3,
-    type: "Custom Exhaust System",
-    vehicle: "Toyota Camry 2020",
+    type: 'Custom Exhaust System',
+    vehicle: 'Toyota Camry 2020',
     progress: 45,
-    status: "In Progress",
-    estimatedCompletion: "2024-01-20",
-    technician: "Alex Rodriguez",
+    status: 'In Progress',
+    estimatedCompletion: '2024-01-20',
+    technician: 'Alex Rodriguez',
   },
 ]
 
 const mockUpcomingAppointments = [
   {
     id: 1,
-    service: "Tire Rotation",
-    date: "2024-01-18",
-    time: "10:00 AM",
-    vehicle: "Toyota Camry 2020",
+    service: 'Tire Rotation',
+    date: '2024-01-18',
+    time: '10:00 AM',
+    vehicle: 'Toyota Camry 2020',
   },
   {
     id: 2,
-    service: "AC Service",
-    date: "2024-01-22",
-    time: "2:00 PM",
-    vehicle: "Honda Civic 2019",
+    service: 'AC Service',
+    date: '2024-01-22',
+    time: '2:00 PM',
+    vehicle: 'Honda Civic 2019',
   },
 ]
 
 export default function CustomerDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [notifications, setNotifications] = useState([
-    { id: 1, message: "Oil change completed for Toyota Camry", time: "2 hours ago", type: "success" },
-    { id: 2, message: "Brake inspection scheduled for tomorrow", time: "1 day ago", type: "info" },
-    { id: 3, message: "Custom exhaust project update available", time: "3 hours ago", type: "update" },
+    {
+      id: 1,
+      message: 'Oil change completed for Toyota Camry',
+      time: '2 hours ago',
+      type: 'success',
+    },
+    { id: 2, message: 'Brake inspection scheduled for tomorrow', time: '1 day ago', type: 'info' },
+    {
+      id: 3,
+      message: 'Custom exhaust project update available',
+      time: '3 hours ago',
+      type: 'update',
+    },
   ])
 
   // Simulate real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setNotifications((prev) => [
+      setNotifications(prev => [
         {
           id: Date.now(),
-          message: "Service progress updated",
-          time: "Just now",
-          type: "update",
+          message: 'Service progress updated',
+          time: 'Just now',
+          type: 'update',
         },
         ...prev.slice(0, 4),
       ])
@@ -83,24 +102,24 @@ export default function CustomerDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Completed":
-        return "bg-green-500"
-      case "In Progress":
-        return "bg-blue-500"
-      case "Pending":
-        return "bg-yellow-500"
+      case 'Completed':
+        return 'bg-green-500'
+      case 'In Progress':
+        return 'bg-blue-500'
+      case 'Pending':
+        return 'bg-yellow-500'
       default:
-        return "bg-gray-500"
+        return 'bg-gray-500'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "Completed":
+      case 'Completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />
-      case "In Progress":
+      case 'In Progress':
         return <Clock className="h-4 w-4 text-blue-500" />
-      case "Pending":
+      case 'Pending':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />
       default:
         return <Clock className="h-4 w-4 text-gray-500" />
@@ -113,14 +132,16 @@ export default function CustomerDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground text-balance">Welcome back!</h1>
-          <p className="text-muted-foreground text-balance">Here's what's happening with your vehicles today.</p>
+          <p className="text-muted-foreground text-balance">
+            Here's what's happening with your vehicles today.
+          </p>
         </div>
         <div className="flex space-x-2">
           <Button
             className="bg-primary hover:bg-primary/90"
             onClick={() => {
-              console.log("[v0] Book Service clicked from dashboard")
-              window.location.href = "/customer/appointments"
+              console.log('[v0] Book Service clicked from dashboard')
+              window.location.href = '/customer/appointments'
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -129,8 +150,8 @@ export default function CustomerDashboard() {
           <Button
             variant="outline"
             onClick={() => {
-              console.log("[v0] Request Project clicked from dashboard")
-              window.location.href = "/customer/projects"
+              console.log('[v0] Request Project clicked from dashboard')
+              window.location.href = '/customer/projects'
             }}
           >
             <Wrench className="mr-2 h-4 w-4" />
@@ -195,7 +216,9 @@ export default function CustomerDashboard() {
                 <Wrench className="h-5 w-5" />
                 <span>Current Services & Projects</span>
               </CardTitle>
-              <CardDescription>Track the progress of your ongoing services in real-time</CardDescription>
+              <CardDescription>
+                Track the progress of your ongoing services in real-time
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <LiveProgress />
@@ -212,7 +235,7 @@ export default function CustomerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockUpcomingAppointments.map((appointment) => (
+                {mockUpcomingAppointments.map(appointment => (
                   <div
                     key={appointment.id}
                     className="flex items-center justify-between p-3 border border-border rounded-lg"
@@ -269,11 +292,11 @@ export default function CustomerDashboard() {
                     <div className="flex items-start space-x-3">
                       <div
                         className={`w-2 h-2 rounded-full mt-2 ${
-                          notification.type === "success"
-                            ? "bg-green-500"
-                            : notification.type === "info"
-                              ? "bg-blue-500"
-                              : "bg-yellow-500"
+                          notification.type === 'success'
+                            ? 'bg-green-500'
+                            : notification.type === 'info'
+                              ? 'bg-blue-500'
+                              : 'bg-yellow-500'
                         }`}
                       />
                       <div className="flex-1 space-y-1">

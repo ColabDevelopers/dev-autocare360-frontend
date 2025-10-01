@@ -1,11 +1,18 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,66 +20,66 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Search, Plus, MoreHorizontal, Edit, Trash2, UserCheck, UserX, Filter } from "lucide-react"
+} from '@/components/ui/dropdown-menu'
+import { Search, Plus, MoreHorizontal, Edit, Trash2, UserCheck, UserX, Filter } from 'lucide-react'
 
 const mockUsers = [
   {
     id: 1,
-    name: "John Smith",
-    email: "john@example.com",
-    role: "Customer",
-    status: "Active",
-    joinDate: "2024-01-15",
+    name: 'John Smith',
+    email: 'john@example.com',
+    role: 'Customer',
+    status: 'Active',
+    joinDate: '2024-01-15',
     vehicles: 2,
   },
   {
     id: 2,
-    name: "Sarah Johnson",
-    email: "sarah@example.com",
-    role: "Customer",
-    status: "Active",
-    joinDate: "2024-02-20",
+    name: 'Sarah Johnson',
+    email: 'sarah@example.com',
+    role: 'Customer',
+    status: 'Active',
+    joinDate: '2024-02-20',
     vehicles: 1,
   },
   {
     id: 3,
-    name: "Mike Wilson",
-    email: "mike@example.com",
-    role: "Employee",
-    status: "Active",
-    joinDate: "2023-11-10",
+    name: 'Mike Wilson',
+    email: 'mike@example.com',
+    role: 'Employee',
+    status: 'Active',
+    joinDate: '2023-11-10',
     vehicles: 0,
   },
   {
     id: 4,
-    name: "Emily Davis",
-    email: "emily@example.com",
-    role: "Customer",
-    status: "Inactive",
-    joinDate: "2024-03-05",
+    name: 'Emily Davis',
+    email: 'emily@example.com',
+    role: 'Customer',
+    status: 'Inactive',
+    joinDate: '2024-03-05',
     vehicles: 3,
   },
   {
     id: 5,
-    name: "Robert Brown",
-    email: "robert@example.com",
-    role: "Employee",
-    status: "Active",
-    joinDate: "2023-09-15",
+    name: 'Robert Brown',
+    email: 'robert@example.com',
+    role: 'Employee',
+    status: 'Active',
+    joinDate: '2023-09-15',
     vehicles: 0,
   },
 ]
 
 export default function UserManagement() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedRole, setSelectedRole] = useState("All")
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedRole, setSelectedRole] = useState('All')
 
-  const filteredUsers = mockUsers.filter((user) => {
+  const filteredUsers = mockUsers.filter(user => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === "All" || user.role === selectedRole
+    const matchesRole = selectedRole === 'All' || user.role === selectedRole
     return matchesSearch && matchesRole
   })
 
@@ -98,7 +105,7 @@ export default function UserManagement() {
               <Input
                 placeholder="Search users by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -110,9 +117,15 @@ export default function UserManagement() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setSelectedRole("All")}>All Roles</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedRole("Customer")}>Customer</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedRole("Employee")}>Employee</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedRole('All')}>
+                  All Roles
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedRole('Customer')}>
+                  Customer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedRole('Employee')}>
+                  Employee
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -139,15 +152,19 @@ export default function UserManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map((user) => (
+              {filteredUsers.map(user => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === "Employee" ? "secondary" : "outline"}>{user.role}</Badge>
+                    <Badge variant={user.role === 'Employee' ? 'secondary' : 'outline'}>
+                      {user.role}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.status === "Active" ? "default" : "destructive"}>{user.status}</Badge>
+                    <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>
+                      {user.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>{user.joinDate}</TableCell>
                   <TableCell>{user.vehicles}</TableCell>
@@ -166,7 +183,7 @@ export default function UserManagement() {
                           Edit User
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                          {user.status === "Active" ? (
+                          {user.status === 'Active' ? (
                             <>
                               <UserX className="mr-2 h-4 w-4" />
                               Deactivate

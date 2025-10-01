@@ -1,43 +1,45 @@
-import { convertToModelMessages, streamText, type UIMessage, tool } from "ai"
-import { z } from "zod"
+import { convertToModelMessages, streamText, type UIMessage, tool } from 'ai'
+import { z } from 'zod'
 
 export const maxDuration = 30
 
 // Mock appointment data
 const mockAppointments = [
-  { date: "2024-01-18", time: "10:00 AM", available: true, service: "Oil Change" },
-  { date: "2024-01-18", time: "2:00 PM", available: false, service: "Brake Service" },
-  { date: "2024-01-19", time: "9:00 AM", available: true, service: "Tire Rotation" },
-  { date: "2024-01-19", time: "11:00 AM", available: true, service: "AC Service" },
-  { date: "2024-01-20", time: "1:00 PM", available: true, service: "Engine Diagnostic" },
+  { date: '2024-01-18', time: '10:00 AM', available: true, service: 'Oil Change' },
+  { date: '2024-01-18', time: '2:00 PM', available: false, service: 'Brake Service' },
+  { date: '2024-01-19', time: '9:00 AM', available: true, service: 'Tire Rotation' },
+  { date: '2024-01-19', time: '11:00 AM', available: true, service: 'AC Service' },
+  { date: '2024-01-20', time: '1:00 PM', available: true, service: 'Engine Diagnostic' },
 ]
 
 const checkAvailabilityTool = tool({
-  description: "Check available appointment slots for automotive services",
+  description: 'Check available appointment slots for automotive services',
   inputSchema: z.object({
-    date: z.string().optional().describe("Preferred date in YYYY-MM-DD format"),
-    serviceType: z.string().optional().describe("Type of service needed"),
-    timePreference: z.enum(["morning", "afternoon", "any"]).optional().describe("Time preference"),
+    date: z.string().optional().describe('Preferred date in YYYY-MM-DD format'),
+    serviceType: z.string().optional().describe('Type of service needed'),
+    timePreference: z.enum(['morning', 'afternoon', 'any']).optional().describe('Time preference'),
   }),
   execute: async ({ date, serviceType, timePreference }) => {
-    let availableSlots = mockAppointments.filter((slot) => slot.available)
+    let availableSlots = mockAppointments.filter(slot => slot.available)
 
     if (date) {
-      availableSlots = availableSlots.filter((slot) => slot.date === date)
+      availableSlots = availableSlots.filter(slot => slot.date === date)
     }
 
     if (serviceType) {
-      availableSlots = availableSlots.filter((slot) => slot.service.toLowerCase().includes(serviceType.toLowerCase()))
+      availableSlots = availableSlots.filter(slot =>
+        slot.service.toLowerCase().includes(serviceType.toLowerCase())
+      )
     }
 
-    if (timePreference === "morning") {
-      availableSlots = availableSlots.filter((slot) => {
-        const hour = Number.parseInt(slot.time.split(":")[0])
+    if (timePreference === 'morning') {
+      availableSlots = availableSlots.filter(slot => {
+        const hour = Number.parseInt(slot.time.split(':')[0])
         return hour < 12
       })
-    } else if (timePreference === "afternoon") {
-      availableSlots = availableSlots.filter((slot) => {
-        const hour = Number.parseInt(slot.time.split(":")[0])
+    } else if (timePreference === 'afternoon') {
+      availableSlots = availableSlots.filter(slot => {
+        const hour = Number.parseInt(slot.time.split(':')[0])
         return hour >= 12
       })
     }
@@ -51,13 +53,13 @@ const checkAvailabilityTool = tool({
 })
 
 const bookAppointmentTool = tool({
-  description: "Book an appointment slot for automotive service",
+  description: 'Book an appointment slot for automotive service',
   inputSchema: z.object({
-    date: z.string().describe("Date in YYYY-MM-DD format"),
-    time: z.string().describe("Time slot"),
-    serviceType: z.string().describe("Type of service"),
-    customerName: z.string().describe("Customer name"),
-    vehicleInfo: z.string().describe("Vehicle information"),
+    date: z.string().describe('Date in YYYY-MM-DD format'),
+    time: z.string().describe('Time slot'),
+    serviceType: z.string().describe('Type of service'),
+    customerName: z.string().describe('Customer name'),
+    vehicleInfo: z.string().describe('Vehicle information'),
   }),
   execute: async ({ date, time, serviceType, customerName, vehicleInfo }) => {
     // Simulate booking logic
@@ -72,8 +74,8 @@ const bookAppointmentTool = tool({
         serviceType,
         customerName,
         vehicleInfo,
-        estimatedDuration: "2 hours",
-        location: "AutoCare360 Center - Bay 3",
+        estimatedDuration: '2 hours',
+        location: 'AutoCare360 Center - Bay 3',
       },
     }
   },
@@ -83,7 +85,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json()
 
   const result = streamText({
-    model: "openai/gpt-4o",
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
     system: `You are an AI assistant for an automobile service center. You help customers:
     

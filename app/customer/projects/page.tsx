@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import {
   Dialog,
   DialogContent,
@@ -12,68 +12,74 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Calendar, Clock, DollarSign, User } from "lucide-react"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Plus, Calendar, Clock, DollarSign, User } from 'lucide-react'
 
 const projects = [
   {
     id: 1,
-    title: "Custom Exhaust System",
-    vehicle: "2020 BMW M3",
-    status: "In Progress",
+    title: 'Custom Exhaust System',
+    vehicle: '2020 BMW M3',
+    status: 'In Progress',
     progress: 65,
-    startDate: "2024-01-15",
-    estimatedCompletion: "2024-02-01",
-    cost: "$2,500",
-    technician: "Mike Johnson",
+    startDate: '2024-01-15',
+    estimatedCompletion: '2024-02-01',
+    cost: '$2,500',
+    technician: 'Mike Johnson',
   },
   {
     id: 2,
-    title: "Performance Tune",
-    vehicle: "2019 Audi RS6",
-    status: "Completed",
+    title: 'Performance Tune',
+    vehicle: '2019 Audi RS6',
+    status: 'Completed',
     progress: 100,
-    startDate: "2024-01-10",
-    estimatedCompletion: "2024-01-20",
-    cost: "$1,800",
-    technician: "Sarah Wilson",
+    startDate: '2024-01-10',
+    estimatedCompletion: '2024-01-20',
+    cost: '$1,800',
+    technician: 'Sarah Wilson',
   },
   {
     id: 3,
-    title: "Suspension Upgrade",
-    vehicle: "2021 Porsche 911",
-    status: "Pending",
+    title: 'Suspension Upgrade',
+    vehicle: '2021 Porsche 911',
+    status: 'Pending',
     progress: 0,
-    startDate: "2024-02-05",
-    estimatedCompletion: "2024-02-15",
-    cost: "$3,200",
-    technician: "Alex Chen",
+    startDate: '2024-02-05',
+    estimatedCompletion: '2024-02-15',
+    cost: '$3,200',
+    technician: 'Alex Chen',
   },
 ]
 
 export default function CustomerProjects() {
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
   const [projectRequest, setProjectRequest] = useState({
-    title: "",
-    vehicle: "",
-    description: "",
-    budget: "",
-    priority: "",
+    title: '',
+    vehicle: '',
+    description: '',
+    budget: '',
+    priority: '',
   })
 
   const handleRequestProject = () => {
-    console.log("[v0] Project requested:", projectRequest)
+    console.log('[v0] Project requested:', projectRequest)
     // TODO: Submit project request to backend
     setProjectRequest({
-      title: "",
-      vehicle: "",
-      description: "",
-      budget: "",
-      priority: "",
+      title: '',
+      vehicle: '',
+      description: '',
+      budget: '',
+      priority: '',
     })
     setIsRequestDialogOpen(false)
   }
@@ -102,13 +108,15 @@ export default function CustomerProjects() {
                 <Input
                   id="title"
                   value={projectRequest.title}
-                  onChange={(e) => setProjectRequest({ ...projectRequest, title: e.target.value })}
+                  onChange={e => setProjectRequest({ ...projectRequest, title: e.target.value })}
                   placeholder="e.g., Custom Exhaust System"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vehicle">Select Vehicle</Label>
-                <Select onValueChange={(value) => setProjectRequest({ ...projectRequest, vehicle: value })}>
+                <Select
+                  onValueChange={value => setProjectRequest({ ...projectRequest, vehicle: value })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose your vehicle" />
                   </SelectTrigger>
@@ -123,7 +131,9 @@ export default function CustomerProjects() {
                 <Textarea
                   id="description"
                   value={projectRequest.description}
-                  onChange={(e) => setProjectRequest({ ...projectRequest, description: e.target.value })}
+                  onChange={e =>
+                    setProjectRequest({ ...projectRequest, description: e.target.value })
+                  }
                   placeholder="Describe your project requirements in detail..."
                   rows={4}
                 />
@@ -131,7 +141,9 @@ export default function CustomerProjects() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="budget">Budget Range</Label>
-                  <Select onValueChange={(value) => setProjectRequest({ ...projectRequest, budget: value })}>
+                  <Select
+                    onValueChange={value => setProjectRequest({ ...projectRequest, budget: value })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select budget" />
                     </SelectTrigger>
@@ -146,7 +158,11 @@ export default function CustomerProjects() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
-                  <Select onValueChange={(value) => setProjectRequest({ ...projectRequest, priority: value })}>
+                  <Select
+                    onValueChange={value =>
+                      setProjectRequest({ ...projectRequest, priority: value })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority" />
                     </SelectTrigger>
@@ -173,7 +189,7 @@ export default function CustomerProjects() {
       </div>
 
       <div className="grid gap-6">
-        {projects.map((project) => (
+        {projects.map(project => (
           <Card key={project.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -183,11 +199,11 @@ export default function CustomerProjects() {
                 </div>
                 <Badge
                   variant={
-                    project.status === "Completed"
-                      ? "default"
-                      : project.status === "In Progress"
-                        ? "secondary"
-                        : "outline"
+                    project.status === 'Completed'
+                      ? 'default'
+                      : project.status === 'In Progress'
+                        ? 'secondary'
+                        : 'outline'
                   }
                 >
                   {project.status}

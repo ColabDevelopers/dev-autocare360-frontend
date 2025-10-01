@@ -1,26 +1,37 @@
-"use client"
+'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
-import { Download, TrendingUp, Users, Car, DollarSign, Calendar, FileText } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
+import { Download, TrendingUp, Users, Car, DollarSign, Calendar, FileText } from 'lucide-react'
 
 const monthlyRevenue = [
-  { month: "Jan", revenue: 32000, services: 45 },
-  { month: "Feb", revenue: 28000, services: 38 },
-  { month: "Mar", revenue: 35000, services: 52 },
-  { month: "Apr", revenue: 42000, services: 61 },
-  { month: "May", revenue: 38000, services: 48 },
-  { month: "Jun", revenue: 45000, services: 67 },
+  { month: 'Jan', revenue: 32000, services: 45 },
+  { month: 'Feb', revenue: 28000, services: 38 },
+  { month: 'Mar', revenue: 35000, services: 52 },
+  { month: 'Apr', revenue: 42000, services: 61 },
+  { month: 'May', revenue: 38000, services: 48 },
+  { month: 'Jun', revenue: 45000, services: 67 },
 ]
 
 const serviceTypes = [
-  { name: "Oil Change", value: 35, color: "#3b82f6" },
-  { name: "Brake Service", value: 25, color: "#10b981" },
-  { name: "Engine Repair", value: 20, color: "#f59e0b" },
-  { name: "Tire Service", value: 15, color: "#ef4444" },
-  { name: "Other", value: 5, color: "#8b5cf6" },
+  { name: 'Oil Change', value: 35, color: '#3b82f6' },
+  { name: 'Brake Service', value: 25, color: '#10b981' },
+  { name: 'Engine Repair', value: 20, color: '#f59e0b' },
+  { name: 'Tire Service', value: 15, color: '#ef4444' },
+  { name: 'Other', value: 5, color: '#8b5cf6' },
 ]
 
 export default function ReportsAnalytics() {
