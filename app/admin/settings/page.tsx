@@ -53,11 +53,11 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="company-name">Company Name</Label>
-                  <Input id="company-name" defaultValue="AutoService Pro" />
+                  <Input id="company-name" defaultValue="AutoCare360" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company-email">Company Email</Label>
-                  <Input id="company-email" type="email" defaultValue="info@autoservice.com" />
+                  <Input id="company-email" type="email" defaultValue="info@autocare360.com" />
                 </div>
               </div>
 
@@ -148,7 +148,7 @@ export default function SettingsPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="smtp-username">Username</Label>
-                    <Input id="smtp-username" defaultValue="notifications@autoservice.com" />
+                    <Input id="smtp-username" defaultValue="notifications@autocare360.com" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="smtp-password">Password</Label>

@@ -56,7 +56,7 @@ export function EmployeeSidebar() {
                   <Car className="h-6 w-6 text-sidebar-primary" />
                   <Wrench className="h-3 w-3 text-accent absolute -bottom-0.5 -right-0.5" />
                 </div>
-                <span className="font-semibold text-sidebar-foreground">AutoService Pro</span>
+                <span className="font-semibold text-sidebar-foreground">AutoCare360</span>
               </div>
             )}
             <Button

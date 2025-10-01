@@ -73,7 +73,7 @@ const bookAppointmentTool = tool({
         customerName,
         vehicleInfo,
         estimatedDuration: "2 hours",
-        location: "AutoService Center - Bay 3",
+        location: "AutoCare360 Center - Bay 3",
       },
     }
   },

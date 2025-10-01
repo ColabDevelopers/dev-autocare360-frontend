@@ -42,7 +42,7 @@ const auditLogs = [
     userRole: "N/A",
     timestamp: "2024-01-15 07:30:45",
     ipAddress: "203.0.113.42",
-    details: "Multiple failed login attempts for user: sarah.johnson@autoservice.com",
+    details: "Multiple failed login attempts for user: sarah.johnson@autocare360.com",
     category: "security",
     severity: "high",
     avatar: "/placeholder.svg?height=32&width=32",

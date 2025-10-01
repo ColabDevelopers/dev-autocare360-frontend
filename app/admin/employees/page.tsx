@@ -14,7 +14,7 @@ const employees = [
   {
     id: 1,
     name: "John Smith",
-    email: "john.smith@autoservice.com",
+    email: "john.smith@autocare360.com",
     role: "Senior Mechanic",
     department: "Engine Repair",
     status: "active",
@@ -25,7 +25,7 @@ const employees = [
   {
     id: 2,
     name: "Sarah Johnson",
-    email: "sarah.johnson@autoservice.com",
+    email: "sarah.johnson@autocare360.com",
     role: "Diagnostic Specialist",
     department: "Diagnostics",
     status: "active",
@@ -36,7 +36,7 @@ const employees = [
   {
     id: 3,
     name: "Mike Wilson",
-    email: "mike.wilson@autoservice.com",
+    email: "mike.wilson@autocare360.com",
     role: "Brake Specialist",
     department: "Brake Service",
     status: "on_leave",

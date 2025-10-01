@@ -28,7 +28,7 @@ const conversations = [
   },
   {
     id: 3,
-    name: "AutoService Support",
+    name: "AutoCare360 Support",
     role: "Support Team",
     lastMessage: "We've received your feedback and will address it promptly.",
     time: "Yesterday",

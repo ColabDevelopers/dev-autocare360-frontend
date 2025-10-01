@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AutoService Pro - Service Management System",
+  title: "AutoCare360 - Service Management System",
   description: "Professional automobile service time logging and appointment system",
     generator: 'v0.app'
 }

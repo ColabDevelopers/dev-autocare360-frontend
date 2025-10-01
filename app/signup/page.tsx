@@ -58,7 +58,7 @@ export default function SignupPage() {
               <Car className="h-8 w-8 text-primary" />
               <Wrench className="h-4 w-4 text-accent absolute -bottom-1 -right-1" />
             </div>
-            <h1 className="text-2xl font-bold text-balance">AutoService Pro</h1>
+            <h1 className="text-2xl font-bold text-balance">AutoCare360</h1>
           </div>
           <p className="text-muted-foreground text-balance">Create your customer account</p>
         </div>
@@ -73,7 +73,7 @@ export default function SignupPage() {
               <div>
                 <CardTitle className="text-2xl">Create Account</CardTitle>
                 <CardDescription className="text-balance">
-                  Join AutoService Pro to manage your vehicle services
+                  Join AutoCare360 to manage your vehicle services
                 </CardDescription>
               </div>
             </div>

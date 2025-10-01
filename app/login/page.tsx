@@ -78,7 +78,7 @@ export default function LoginPage() {
               <Car className="h-8 w-8 text-primary" />
               <Wrench className="h-4 w-4 text-accent absolute -bottom-1 -right-1" />
             </div>
-            <h1 className="text-2xl font-bold text-balance">AutoService Pro</h1>
+            <h1 className="text-2xl font-bold text-balance">AutoCare360</h1>
           </div>
           <p className="text-muted-foreground text-balance">Professional service management system</p>
         </div>
