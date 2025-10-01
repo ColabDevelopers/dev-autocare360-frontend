@@ -14,56 +14,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Validate GitHub Token
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      
+      - name: Create sync archive
+        id: create_archive
         run: |
-          if [ -z "$GITHUB_TOKEN" ]; then
-            echo "Error: PERSONAL_ACCESS_TOKEN secret is not set"
-            echo "Please add a Personal Access Token as a repository secret named 'PERSONAL_ACCESS_TOKEN'"
-            echo "The token should have 'repo' permissions to access the AutoCare360 repository"
-            exit 1
-          fi
-
-      - name: Configure Git
+          # Create a timestamped tar archive of the frontend code
+          tar_file="frontend-sync-$(date +%Y%m%d-%H%M%S).tar.gz"
+          echo "Creating archive $tar_file"
+          tar --exclude='.git' --exclude='.github' --exclude='node_modules' -czf "$tar_file" .
+          echo "archive_name=$tar_file" >> $GITHUB_OUTPUT
+      
+      - name: Upload archive as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-sync
+          path: ${{ steps.create_archive.outputs.archive_name }}
+          retention-days: 14
+      
+      - name: Create sync notification
         run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "actions@github.com"
-
-      - name: Clone and sync AutoCare360 repo
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          echo "Cloning AutoCare360 repository..."
-          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/ColabDevelopers/AutoCare360.git
-          cd AutoCare360
-
-          echo "Backing up existing frontend folder..."
-          if [ -d "frontend" ]; then
-            mv frontend frontend_backup_$(date +%s) || true
-          fi
-
-          echo "Creating new frontend folder..."
-          mkdir -p frontend
-
-          echo "Copying frontend files..."
-          # Copy all files except .git, .github, and node_modules
-          find .. -maxdepth 1 -not -name ".." -not -name ".git" -not -name ".github" -not -name "node_modules" -not -name "AutoCare360" -exec cp -r {} frontend/ \;
-
-          echo "Checking for changes..."
-          git add .
-          if git diff --staged --quiet; then
-            echo "No changes detected - sync not needed"
-            exit 0
-          fi
-
-          echo "Committing and pushing changes..."
-          COMMIT_SHA=$(cd .. && git rev-parse --short HEAD)
-          git commit -m "Auto-sync frontend from dev-autocare360-frontend
-
-          Source commit: ${COMMIT_SHA}
-          Synced at: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-          
-          git push origin main
-          echo "✅ Frontend successfully synced to AutoCare360 repository"
+          echo "Frontend sync complete."
+          echo "The frontend code has been packaged as an artifact named 'frontend-sync'."
+          echo "Download this artifact and extract it to the 'frontend' directory in the AutoCare360 repository."
+          echo "Sync archive: ${{ steps.create_archive.outputs.archive_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
