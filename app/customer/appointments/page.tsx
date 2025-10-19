@@ -12,7 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+
 } from '@/components/ui/dialog'
+
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,27 +23,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+import { Plus, Calendar as CalendarIcon, Clock, Wrench, Edit, X, Loader2 } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CalendarIcon, Clock, Plus, Edit, X, Wrench, Loader2 } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+
 import { API_CONFIG } from '@/lib/api'
 
-// Types
+// Appointment type used in the component
 interface Appointment {
-  id: number; // Changed from string to number to match backend
-  service: string;
-  vehicle: string;
-  date: string;
-  time: string;
-  status: string;
-  technician?: string;
-  notes?: string;
+  id: number
+  service: string
+  vehicle: string
+  date: string // YYYY-MM-DD
+  time: string // HH:mm or HH:mm:ss
+  status: string
+  notes?: string
+  technician?: string
   user?: {
-    id: number;
-    name: string;
-    email: string;
-  };
+    id: number
+    name: string
+    email: string
+  }
 }
 
 interface Service {
@@ -64,6 +69,12 @@ const vehicles = [
   { id: '2', name: '2019 Honda Civic', plate: 'XYZ-5678' },
 ]
 
+const technicians = [
+  { id: 'tech-1', name: 'Alex Morgan' },
+  { id: 'tech-2', name: 'Priya Patel' },
+  { id: 'tech-3', name: 'Sam Lee' },
+]
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
@@ -77,6 +88,7 @@ export default function AppointmentsPage() {
     vehicle: '',
     date: '',
     time: '',
+    technician: '',
     notes: '',
   })
   const [isRescheduling, setIsRescheduling] = useState(false)
@@ -109,8 +121,8 @@ export default function AppointmentsPage() {
     }
   }
 
-  // Fetch available times for selected date
-  const fetchAvailability = async (date: Date) => {
+  // Fetch available times for selected date, optionally for a specific technician
+  const fetchAvailability = async (date: Date, technician?: string) => {
     try {
       const formatDateLocal = (d?: Date) => {
         if (!d) return ''
@@ -120,7 +132,8 @@ export default function AppointmentsPage() {
         return `${y}-${m}-${day}`
       }
       const dateStr = formatDateLocal(date)
-      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AVAILABILITY}?date=${dateStr}`)
+      const techParam = technician ? `&technician=${encodeURIComponent(technician)}` : ''
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AVAILABILITY}?date=${dateStr}${techParam}`)
       if (!res.ok) throw new Error('Failed to fetch availability')
       const data = await res.json()
       setAvailableTimes(data.timeSlots || []) // Use timeSlots from backend response
@@ -152,6 +165,7 @@ export default function AppointmentsPage() {
         time: normalizedTime,
         status: isRescheduling && selectedAppointment ? selectedAppointment.status : 'PENDING',
         notes: bookingForm.notes,
+        technician: bookingForm.technician || null,
       }
       const url = isRescheduling && selectedAppointment 
         ? `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}/${selectedAppointment.id}` 
@@ -180,7 +194,8 @@ export default function AppointmentsPage() {
       } else {
         alert('Appointment booked successfully')
       }
-      setBookingForm({ service: '', vehicle: '', date: '', time: '', notes: '' })
+  setBookingForm({ service: '', vehicle: '', date: '', time: '', technician: '', notes: '' })
+      
       setIsBookingDialogOpen(false)
       setIsRescheduling(false)
       setSelectedAppointment(null)
@@ -222,6 +237,7 @@ export default function AppointmentsPage() {
       vehicle: appointment.vehicle,
       date: appointment.date,
       time: appointment.time,
+      technician: appointment.technician || '',
       notes: appointment.notes || '',
     })
     // Parse YYYY-MM-DD into a local Date object without timezone shifts
@@ -236,7 +252,7 @@ export default function AppointmentsPage() {
     }
     const parsed = parseDateOnly(appointment.date)
     setSelectedDate(parsed)
-    if (parsed) fetchAvailability(parsed)
+  if (parsed) fetchAvailability(parsed, bookingForm.technician)
     setIsBookingDialogOpen(true)
   }
 
@@ -276,7 +292,7 @@ export default function AppointmentsPage() {
           if (!open) {
             setIsRescheduling(false)
             setSelectedAppointment(null)
-            setBookingForm({ service: '', vehicle: '', date: '', time: '', notes: '' })
+            setBookingForm({ service: '', vehicle: '', date: '', time: '', technician: '', notes: '' })
             setAvailableTimes([])
           }
         }}>
@@ -329,6 +345,30 @@ export default function AppointmentsPage() {
                 </Select>
               </div>
 
+              {/* Move technician selection right after vehicle */}
+              <div className="space-y-2">
+                <Label>Assign Technician</Label>
+                <Select onValueChange={value => {
+                    setBookingForm({ ...bookingForm, technician: value })
+                    // If a date is already selected, refetch availability for this technician
+                    if (bookingForm.date) {
+                      const parts = bookingForm.date.split('-')
+                      const d = new Date(parseInt(parts[0]), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10))
+                      fetchAvailability(d, value)
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a technician" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {technicians.map(t => (
+                      <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Select Date</Label>
@@ -349,7 +389,7 @@ export default function AppointmentsPage() {
                           ...bookingForm,
                           date: formatDateLocal(date),
                         })
-                        if (date) fetchAvailability(date)
+                        if (date) fetchAvailability(date, bookingForm.technician)
                       }}
                       disabled={date => date < new Date()}
                       className="rounded-md border"
@@ -382,12 +422,14 @@ export default function AppointmentsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Additional Notes</Label>
-                <Textarea
-                  placeholder="Any specific concerns or requests..."
-                  value={bookingForm.notes}
-                  onChange={e => setBookingForm({ ...bookingForm, notes: e.target.value })}
-                />
+                <div className="space-y-2">
+                  <Label>Additional Notes</Label>
+                  <Textarea
+                    placeholder="Any specific concerns or requests..."
+                    value={bookingForm.notes}
+                    onChange={e => setBookingForm({ ...bookingForm, notes: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
             <div className="flex justify-end space-x-2 flex-shrink-0 pt-4 border-t">
@@ -474,6 +516,9 @@ export default function AppointmentsPage() {
                               <Clock className="h-4 w-4" />
                               <span>{appointment.time}</span>
                             </div>
+                            <div className="flex items-center space-x-1">
+                              <span className="text-sm">Technician: {appointment.technician || 'TBD'}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -556,12 +601,141 @@ export default function AppointmentsPage() {
               <CardDescription>View all your appointments in calendar format</CardDescription>
             </CardHeader>
             <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border w-full"
-              />
+              <div className="w-full">
+                <div className="grid grid-cols-7 gap-1 mb-4">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className="p-2 text-center font-medium text-sm">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {(() => {
+                    const today = new Date()
+                    const currentMonth = selectedDate?.getMonth() ?? today.getMonth()
+                    const currentYear = selectedDate?.getFullYear() ?? today.getFullYear()
+                    
+                    const firstDay = new Date(currentYear, currentMonth, 1)
+                    const lastDay = new Date(currentYear, currentMonth + 1, 0)
+                    const startDate = new Date(firstDay)
+                    startDate.setDate(startDate.getDate() - firstDay.getDay())
+                    
+                    const days = []
+                    for (let i = 0; i < 42; i++) {
+                      const date = new Date(startDate)
+                      date.setDate(startDate.getDate() + i)
+                      days.push(date)
+                    }
+                    
+                    const formatDateLocal = (d: Date) => {
+                      const y = d.getFullYear()
+                      const m = String(d.getMonth() + 1).padStart(2, '0')
+                      const day = String(d.getDate()).padStart(2, '0')
+                      return `${y}-${m}-${day}`
+                    }
+                    
+                    return days.map((date, index) => {
+                      const dateStr = formatDateLocal(date)
+                      const dayAppointments = appointments.filter(apt => apt.date === dateStr)
+                      const isCurrentMonth = date.getMonth() === currentMonth
+                      const isToday = date.toDateString() === today.toDateString()
+                      const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString()
+                      
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => setSelectedDate(date)}
+                          className={`
+                            min-h-[120px] p-1 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors
+                            ${isCurrentMonth ? 'bg-background' : 'bg-muted/30 text-muted-foreground'}
+                            ${isToday ? 'ring-2 ring-primary' : ''}
+                            ${isSelected ? 'bg-white text-black' : ''}
+                            ${dayAppointments.length > 0 ? 'border-primary/50' : ''}
+                          `}
+                        >
+                          <div className={`text-xs font-medium mb-1 ${isSelected ? 'text-black' : ''}`}>
+                            {date.getDate()}
+                          </div>
+                          {dayAppointments.length > 0 && (
+                            <div className="space-y-0.5">
+                              {dayAppointments.slice(0, 2).map((apt) => {
+                                // Convert 24-hour time to 12-hour AM/PM format
+                                const formatTime = (time: string) => {
+                                  if (!time) return ''
+                                  const [hours, minutes] = time.split(':')
+                                  const hour12 = parseInt(hours) % 12 || 12
+                                  const ampm = parseInt(hours) >= 12 ? 'PM' : 'AM'
+                                  return `${hour12}:${minutes} ${ampm}`
+                                }
+                                
+                                return (
+                                  <div key={apt.id} className={`text-[7px] leading-tight rounded px-1 py-0.5 mb-0.5 ${
+                                    isSelected ? 'bg-black text-white' : 'bg-primary/20'
+                                  }`}>
+                                    <div className={`font-medium truncate ${
+                                      isSelected ? 'text-white' : 'text-primary'
+                                    }`} title={apt.vehicle}>
+                                      {apt.vehicle}
+                                    </div>
+                                    <div className={`truncate ${
+                                      isSelected ? 'text-white' : 'text-foreground'
+                                    }`} title={apt.service}>
+                                      {apt.service}
+                                    </div>
+                                    <div className={`font-bold ${
+                                      isSelected ? 'text-white' : 'text-primary'
+                                    }`}>
+                                      {formatTime(apt.time)}
+                                    </div>
+                                    <div className={`text-[8px] truncate ${isSelected ? 'text-white/90' : 'text-muted-foreground'}`} title={apt.technician || 'TBD'}>
+                                      {apt.technician ? `Technician: ${apt.technician}` : 'Technician: TBD'}
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                              {dayAppointments.length > 2 && (
+                                <div className={`text-[6px] text-center rounded px-1 ${
+                                  isSelected ? 'bg-black text-white' : 'bg-muted'
+                                }`}>
+                                  +{dayAppointments.length - 2} more
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+                <div className="flex justify-between items-center mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      const newDate = new Date(selectedDate ?? new Date())
+                      newDate.setMonth(newDate.getMonth() - 1)
+                      setSelectedDate(newDate)
+                    }}
+                  >
+                    Previous Month
+                  </Button>
+                  <div className="font-medium">
+                    {selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
+                     new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      const newDate = new Date(selectedDate ?? new Date())
+                      newDate.setMonth(newDate.getMonth() + 1)
+                      setSelectedDate(newDate)
+                    }}
+                  >
+                    Next Month
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
