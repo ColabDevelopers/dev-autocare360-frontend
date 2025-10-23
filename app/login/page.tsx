@@ -11,6 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Car, Wrench, Shield, Loader2 } from 'lucide-react'
+import { authApi } from '@/lib/api'
+
+interface AuthResponse {
+  token: string
+  type: string
+  id: number
+  email: string
+  name: string
+  role: string
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -25,33 +35,22 @@ export default function LoginPage() {
 
     console.log('[v0] Login attempt with email:', email)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const response = await authApi.login({ email, password })
 
-    // Mock authentication - in real app, validate credentials
-    if (email && password) {
-      // Store user role in localStorage for demo
-      const role = email.includes('admin')
-        ? 'admin'
-        : email.includes('employee')
-          ? 'employee'
-          : 'customer'
-      console.log('[v0] Determined role:', role, 'for email:', email)
+      if (response.data) {
+        const data = response.data as AuthResponse
+        console.log('[v0] Login successful:', data)
 
-      try {
-        localStorage.setItem('userRole', role)
-        localStorage.setItem('userEmail', email)
-
-        // Verify storage was successful
-        const storedRole = localStorage.getItem('userRole')
-        const storedEmail = localStorage.getItem('userEmail')
-
-        console.log('[v0] Stored in localStorage - role:', storedRole, 'email:', storedEmail)
-
-        // Add a small delay to ensure localStorage is fully committed
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Store JWT token and user info
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('userRole', data.role.toLowerCase())
+        localStorage.setItem('userEmail', data.email)
+        localStorage.setItem('userName', data.name)
+        localStorage.setItem('userId', data.id.toString())
 
         // Redirect based on role
+        const role = data.role.toLowerCase()
         if (role === 'admin') {
           console.log('[v0] Redirecting to admin dashboard')
           router.push('/admin/dashboard')
@@ -62,11 +61,13 @@ export default function LoginPage() {
           console.log('[v0] Redirecting to customer dashboard')
           router.push('/customer/dashboard')
         }
-      } catch (error) {
-        console.error('[v0] Error storing authentication data:', error)
+      } else {
+        console.error('[v0] Login failed:', response.error)
+        alert(response.error || 'Login failed')
       }
-    } else {
-      console.log('[v0] Login failed - missing email or password')
+    } catch (error) {
+      console.error('[v0] Login error:', error)
+      alert('Network error. Please try again.')
     }
 
     setIsLoading(false)

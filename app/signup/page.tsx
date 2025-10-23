@@ -17,6 +17,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Car, Wrench, Loader2, ArrowLeft } from 'lucide-react'
+import { authApi } from '@/lib/api'
+
+interface AuthResponse {
+  token: string
+  type: string
+  id: number
+  email: string
+  name: string
+  role: string
+}
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -43,13 +53,36 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const response = await authApi.signup({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        role: 'CUSTOMER', // Default to customer for this signup page
+      })
 
-    // Mock registration success
-    localStorage.setItem('userRole', 'customer')
-    localStorage.setItem('userEmail', formData.email)
-    router.push('/customer/dashboard')
+      if (response.data) {
+        const data = response.data as AuthResponse
+        console.log('[v0] Signup successful:', data)
+
+        // Store JWT token and user info
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('userRole', data.role.toLowerCase())
+        localStorage.setItem('userEmail', data.email)
+        localStorage.setItem('userName', data.name)
+        localStorage.setItem('userId', data.id.toString())
+
+        // Redirect to customer dashboard
+        router.push('/customer/dashboard')
+      } else {
+        console.error('[v0] Signup failed:', response.error)
+        alert(response.error || 'Signup failed')
+      }
+    } catch (error) {
+      console.error('[v0] Signup error:', error)
+      alert('Network error. Please try again.')
+    }
 
     setIsLoading(false)
   }
