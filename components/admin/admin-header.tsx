@@ -1,6 +1,8 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
+import { clearToken } from '@/lib/auth'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Bell, Search, User, LogOut, AlertTriangle, CheckCircle } from 'lucide-react'
@@ -14,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export function AdminHeader() {
+  const router = useRouter()
   return (
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
@@ -78,7 +81,12 @@ export function AdminHeader() {
                 <User className="mr-2 h-4 w-4" />
                 Profile Settings
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  clearToken()
+                  router.push('/login')
+                }}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </DropdownMenuItem>

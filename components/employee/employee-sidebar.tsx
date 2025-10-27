@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { clearToken } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -17,10 +18,12 @@ import {
   Upload,
   Users,
   Car,
+  User,
 } from 'lucide-react'
 
 const navigationItems = [
   { icon: BarChart3, label: 'Dashboard', href: '/employee/dashboard' },
+  { icon: User, label: 'Profile', href: '/employee/profile' },
   { icon: Calendar, label: 'Appointments', href: '/employee/appointments' },
   { icon: Wrench, label: 'Projects', href: '/employee/projects' },
   { icon: Clock, label: 'Time Logs', href: '/employee/time-logs' },
@@ -35,8 +38,7 @@ export function EmployeeSidebar() {
   const pathname = usePathname()
 
   const handleLogout = () => {
-    localStorage.removeItem('userRole')
-    localStorage.removeItem('userEmail')
+    clearToken()
     router.push('/login')
   }
 

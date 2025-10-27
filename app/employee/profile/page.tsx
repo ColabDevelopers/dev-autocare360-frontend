@@ -5,11 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Mail, Phone, Calendar, Edit } from 'lucide-react'
-import { me, changePassword } from '@/services/auth'
+import { Edit } from 'lucide-react'
+import { changePassword, me, updateMe } from '@/services/auth'
 import {
   Dialog,
   DialogContent,
@@ -19,10 +18,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 
-export default function CustomerProfile() {
+export default function EmployeeProfile() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [phone, setPhone] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+
   const [pwdOpen, setPwdOpen] = useState(false)
   const [pwdCurrent, setPwdCurrent] = useState('')
   const [pwdNew, setPwdNew] = useState('')
@@ -36,6 +39,7 @@ export default function CustomerProfile() {
       try {
         const u = await me()
         setUser(u)
+        setPhone(u?.phone || '')
       } catch (e: any) {
         setError(e?.message || 'Failed to load profile')
       } finally {
@@ -46,27 +50,39 @@ export default function CustomerProfile() {
   }, [])
 
   const initials = useMemo(() => {
-    const email: string = user?.email || ''
     const name: string = user?.name || ''
     if (name) {
       const parts = name.trim().split(' ')
       return parts.slice(0, 2).map(p => p[0]?.toUpperCase()).join('') || 'U'
     }
-    if (email) return email.split('@')[0].slice(0, 2).toUpperCase()
-    return 'U'
+    return (user?.email?.split('@')[0] || 'U').slice(0, 2).toUpperCase()
   }, [user])
 
-  const [firstName, lastName] = useMemo(() => {
-    const name: string = user?.name || ''
-    if (!name) return ['', '']
-    const parts = name.trim().split(' ')
-    return [parts[0] || '', parts.slice(1).join(' ') || '']
+  const departmentValue = useMemo(() => {
+    return (
+      (user?.department as string) ||
+      (user?.employee?.department as string) ||
+      (user?.departmentName as string) ||
+      (user?.dept?.name as string) ||
+      ''
+    )
+  }, [user])
+
+  const employeeNoValue = useMemo(() => {
+    return (
+      (user?.employeeNo as string) ||
+      (user?.employee?.employeeNo as string) ||
+      (user?.employeeNumber as string) ||
+      (user?.empNo as string) ||
+      (user?.code as string) ||
+      ''
+    )
   }, [user])
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Profile</h1>
+        <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
         <div className="flex items-center gap-2">
           <Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
             <DialogTrigger asChild>
@@ -137,7 +153,6 @@ export default function CustomerProfile() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Overview */}
         <Card className="lg:col-span-1">
           <CardHeader className="text-center">
             <Avatar className="w-24 h-24 mx-auto mb-4">
@@ -145,18 +160,17 @@ export default function CustomerProfile() {
               <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
             </Avatar>
             <CardTitle>{user?.name || '—'}</CardTitle>
-            <CardDescription>{(user?.roles?.[0] || 'customer')?.toString().toUpperCase()}</CardDescription>
+            <CardDescription>Employee</CardDescription>
             <Badge variant="secondary" className="w-fit mx-auto mt-2">
               {user?.status || 'Active'}
             </Badge>
           </CardHeader>
         </Card>
 
-        {/* Profile Details */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>Manage your account details and preferences</CardDescription>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>Some details are managed by admin.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && <div className="text-sm text-destructive">{error}</div>}
@@ -166,58 +180,56 @@ export default function CustomerProfile() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" value={firstName} readOnly />
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" value={user?.name || ''} readOnly />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" value={lastName} readOnly />
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={user?.email || ''} readOnly />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Input id="department" value={departmentValue} readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="employeeNo">Employee No</Label>
+                    <Input id="employeeNo" value={employeeNoValue} readOnly />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={user?.email || ''} readOnly />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" value={user?.phone || ''} readOnly />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea id="address" value={user?.address || ''} readOnly />
+                  <Label htmlFor="phone">Mobile Number</Label>
+                  <div className="flex gap-2">
+                    <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} />
+                    <Button
+                      onClick={async () => {
+                        setSaveMsg(null)
+                        setSaving(true)
+                        try {
+                          await updateMe({ phone })
+                          setSaveMsg('Saved')
+                        } catch (e: any) {
+                          setSaveMsg(e?.message || 'Failed')
+                        } finally {
+                          setSaving(false)
+                        }
+                      }}
+                      disabled={saving}
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </Button>
+                  </div>
+                  {saveMsg && <div className="text-xs text-muted-foreground">{saveMsg}</div>}
                 </div>
               </>
             )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Contact Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Preferences</CardTitle>
-          <CardDescription>Choose how you'd like to receive updates</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>Email notifications</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>SMS updates</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Appointment reminders</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
+
+

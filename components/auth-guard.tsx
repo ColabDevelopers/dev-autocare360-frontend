@@ -4,6 +4,8 @@ import type React from 'react'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { loadToken } from '@/lib/auth'
+import { me } from '@/services/auth'
 import { Loader2 } from 'lucide-react'
 
 interface AuthGuardProps {
@@ -17,32 +19,30 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = () => {
-      const userRole = localStorage.getItem('userRole')
-      const userEmail = localStorage.getItem('userEmail')
-
-      if (!userRole || !userEmail) {
-        router.push('/login')
-        return
-      }
-
-      if (!allowedRoles.includes(userRole)) {
-        // Redirect to appropriate dashboard based on role
-        if (userRole === 'admin') {
-          router.push('/admin/dashboard')
-        } else if (userRole === 'employee') {
-          router.push('/employee/dashboard')
-        } else {
-          router.push('/customer/dashboard')
+    const checkAuth = async () => {
+      try {
+        const token = loadToken()
+        if (!token) {
+          router.push('/login')
+          return
         }
-        return
+        const user = await me()
+        const userRole = (user?.roles?.[0] || '').toLowerCase()
+        if (!allowedRoles.includes(userRole)) {
+          if (userRole === 'admin') router.push('/admin/dashboard')
+          else if (userRole === 'employee') router.push('/employee/dashboard')
+          else router.push('/customer/dashboard')
+          return
+        }
+        setIsAuthorized(true)
+      } catch (e) {
+        router.push('/login')
+      } finally {
+        setIsLoading(false)
       }
-
-      setIsAuthorized(true)
-      setIsLoading(false)
     }
 
-    checkAuth()
+    void checkAuth()
   }, [allowedRoles, router])
 
   if (isLoading) {

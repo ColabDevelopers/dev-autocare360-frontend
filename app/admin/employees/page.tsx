@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,59 +14,56 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Search, UserPlus, Clock, CheckCircle } from 'lucide-react'
+import { listEmployees, type EmployeeResponse, createEmployee, updateEmployee, deleteEmployee } from '@/services/employees'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Search, MoreHorizontal, UserPlus, Clock, CheckCircle } from 'lucide-react'
-
-const employees = [
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john.smith@autocare360.com',
-    role: 'Senior Mechanic',
-    department: 'Engine Repair',
-    status: 'active',
-    hoursThisWeek: 38,
-    completedJobs: 12,
-    avatar: '/placeholder.svg?height=40&width=40',
-  },
-  {
-    id: 2,
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@autocare360.com',
-    role: 'Diagnostic Specialist',
-    department: 'Diagnostics',
-    status: 'active',
-    hoursThisWeek: 40,
-    completedJobs: 8,
-    avatar: '/placeholder.svg?height=40&width=40',
-  },
-  {
-    id: 3,
-    name: 'Mike Wilson',
-    email: 'mike.wilson@autocare360.com',
-    role: 'Brake Specialist',
-    department: 'Brake Service',
-    status: 'on_leave',
-    hoursThisWeek: 0,
-    completedJobs: 0,
-    avatar: '/placeholder.svg?height=40&width=40',
-  },
-]
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [employees, setEmployees] = useState<EmployeeResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+  const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newDepartment, setNewDepartment] = useState('')
 
-  const filteredEmployees = employees.filter(
-    employee =>
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.role.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const [editOpen, setEditOpen] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editId, setEditId] = useState<number | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDepartment, setEditDepartment] = useState('')
+  const [editStatus, setEditStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE')
+
+  useEffect(() => {
+    const load = async () => {
+      setError(null)
+      try {
+        const data = await listEmployees()
+        setEmployees(data)
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load employees')
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [])
+
+  const filteredEmployees = employees.filter(employee => {
+    const hay = `${employee.name || ''} ${employee.email || ''} ${employee.department || ''}`.toLowerCase()
+    return hay.includes(searchTerm.toLowerCase())
+  })
 
   return (
     <div className="space-y-6">
@@ -75,10 +72,61 @@ export default function EmployeesPage() {
           <h1 className="text-3xl font-bold text-foreground">Employee Management</h1>
           <p className="text-muted-foreground">Manage employee accounts, roles, and performance</p>
         </div>
-        <Button>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Employee
-        </Button>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Employee</DialogTitle>
+              <DialogDescription>Create a new employee account.</DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-3"
+              onSubmit={async e => {
+                e.preventDefault()
+                setAddError(null)
+                setAddLoading(true)
+                try {
+                  await createEmployee({ name: newName, email: newEmail, department: newDepartment })
+                  setAddOpen(false)
+                  setNewName('')
+                  setNewEmail('')
+                  setNewDepartment('')
+                  setLoading(true)
+                  const data = await listEmployees()
+                  setEmployees(data)
+                } catch (err: any) {
+                  setAddError(err?.message || 'Failed to add employee')
+                } finally {
+                  setAddLoading(false)
+                  setLoading(false)
+                }
+              }}
+            >
+              {addError && <div className="text-sm text-destructive">{addError}</div>}
+              <div className="space-y-2">
+                <label className="text-sm" htmlFor="emp-name">Full Name</label>
+                <Input id="emp-name" value={newName} onChange={e => setNewName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm" htmlFor="emp-email">Email</label>
+                <Input id="emp-email" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm" htmlFor="emp-dept">Department</label>
+                <Input id="emp-dept" value={newDepartment} onChange={e => setNewDepartment(e.target.value)} required />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={addLoading}>{addLoading ? 'Saving...' : 'Save'}</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -133,16 +181,18 @@ export default function EmployeesPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {error && <div className="text-sm text-destructive mb-3">{error}</div>}
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Loading...</div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Employee</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead>Employee No</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Hours This Week</TableHead>
-                <TableHead>Completed Jobs</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,50 +201,124 @@ export default function EmployeesPage() {
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={employee.avatar || '/placeholder.svg'} />
+                        <AvatarImage src={'/placeholder.svg'} />
                         <AvatarFallback>
-                          {employee.name
+                          {(employee.name || 'N A')
                             .split(' ')
                             .map(n => n[0])
                             .join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{employee.name}</div>
-                        <div className="text-sm text-muted-foreground">{employee.email}</div>
+                        <div className="font-medium">{employee.name || '—'}</div>
+                        <div className="text-sm text-muted-foreground">{employee.email || '—'}</div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{employee.role}</TableCell>
-                  <TableCell>{employee.department}</TableCell>
+                  <TableCell>{employee.employeeNo || '—'}</TableCell>
+                  <TableCell>{employee.department || '—'}</TableCell>
                   <TableCell>
-                    <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
-                      {employee.status === 'active' ? 'Active' : 'On Leave'}
+                    <Badge variant={employee.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                      {employee.status || '—'}
                     </Badge>
                   </TableCell>
-                  <TableCell>{employee.hoursThisWeek}h</TableCell>
-                  <TableCell>{employee.completedJobs}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Employee</DropdownMenuItem>
-                        <DropdownMenuItem>View Schedule</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditId(employee.id as number)
+                        setEditName(employee.name || '')
+                        setEditDepartment(employee.department || '')
+                        setEditStatus((employee.status as any) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE')
+                        setEditError(null)
+                        setEditOpen(true)
+                      }}
+                    >
+                      Update
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={async () => {
+                        try {
+                          await deleteEmployee(employee.id as number)
+                          setEmployees(prev => prev.filter(e => e.id !== employee.id))
+                        } catch (e: any) {
+                          setError(e?.message || 'Failed to delete employee')
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
+
+      {/* Edit Employee Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Employee</DialogTitle>
+            <DialogDescription>Update employee details.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={async e => {
+              e.preventDefault()
+              if (editId == null) return
+              setEditError(null)
+              setEditLoading(true)
+              try {
+                await updateEmployee(editId, {
+                  name: editName,
+                  department: editDepartment,
+                  status: editStatus,
+                })
+                const data = await listEmployees()
+                setEmployees(data)
+                setEditOpen(false)
+              } catch (err: any) {
+                setEditError(err?.message || 'Failed to update employee')
+              } finally {
+                setEditLoading(false)
+              }
+            }}
+          >
+            {editError && <div className="text-sm text-destructive">{editError}</div>}
+            <div className="space-y-2">
+              <label className="text-sm" htmlFor="edit-name">Full Name</label>
+              <Input id="edit-name" value={editName} onChange={e => setEditName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm" htmlFor="edit-dept">Department</label>
+              <Input id="edit-dept" value={editDepartment} onChange={e => setEditDepartment(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm" htmlFor="edit-status">Status</label>
+              <select
+                id="edit-status"
+                className="bg-background border border-border rounded-md h-9 px-3 text-sm"
+                value={editStatus}
+                onChange={e => setEditStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={editLoading}>{editLoading ? 'Saving...' : 'Save'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
