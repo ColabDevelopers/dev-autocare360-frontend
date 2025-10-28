@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,7 +17,9 @@ import {
   Shield,
   UserCheck,
   FileText,
+  LogOut,
 } from 'lucide-react'
+import { clearToken } from '@/lib/auth'
 
 const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -35,6 +37,7 @@ const adminNavItems = [
 export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   return (
     <div
@@ -84,6 +87,21 @@ export function AdminSidebar() {
           )
         })}
       </nav>
+
+      {/* Footer */}
+      <div className="p-2 mt-auto">
+        <Button
+          variant="ghost"
+          className={cn('w-full justify-start h-10', collapsed && 'px-2')}
+          onClick={() => {
+            clearToken()
+            router.push('/login')
+          }}
+        >
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span className="ml-3">Sign Out</span>}
+        </Button>
+      </div>
     </div>
   )
 }

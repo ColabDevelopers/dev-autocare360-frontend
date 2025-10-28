@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,79 +21,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Plus, MoreHorizontal, Edit, Trash2, UserCheck, UserX, Filter } from 'lucide-react'
-
-const mockUsers = [
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john@example.com',
-    role: 'Customer',
-    status: 'Active',
-    joinDate: '2024-01-15',
-    vehicles: 2,
-  },
-  {
-    id: 2,
-    name: 'Sarah Johnson',
-    email: 'sarah@example.com',
-    role: 'Customer',
-    status: 'Active',
-    joinDate: '2024-02-20',
-    vehicles: 1,
-  },
-  {
-    id: 3,
-    name: 'Mike Wilson',
-    email: 'mike@example.com',
-    role: 'Employee',
-    status: 'Active',
-    joinDate: '2023-11-10',
-    vehicles: 0,
-  },
-  {
-    id: 4,
-    name: 'Emily Davis',
-    email: 'emily@example.com',
-    role: 'Customer',
-    status: 'Inactive',
-    joinDate: '2024-03-05',
-    vehicles: 3,
-  },
-  {
-    id: 5,
-    name: 'Robert Brown',
-    email: 'robert@example.com',
-    role: 'Employee',
-    status: 'Active',
-    joinDate: '2023-09-15',
-    vehicles: 0,
-  },
-]
+import { Search, MoreHorizontal, Edit, Trash2, UserCheck, UserX } from 'lucide-react'
+import { listCustomers, type CustomerResponse, updateCustomer, deleteCustomer } from '@/services/customers'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRole, setSelectedRole] = useState('All')
+  const [customers, setCustomers] = useState<CustomerResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editId, setEditId] = useState<number | string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editStatus, setEditStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE')
 
-  const filteredUsers = mockUsers.filter(user => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === 'All' || user.role === selectedRole
-    return matchesSearch && matchesRole
-  })
+  useEffect(() => {
+    const load = async () => {
+      setError(null)
+      try {
+        const data = await listCustomers()
+        setCustomers(data)
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load customers')
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [])
+
+  const filteredUsers = useMemo(() => {
+    const term = searchTerm.toLowerCase()
+    return customers.filter(u =>
+      (u.name || '').toLowerCase().includes(term) || (u.email || '').toLowerCase().includes(term)
+    )
+  }, [customers, searchTerm])
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-          <p className="text-muted-foreground">Manage customers and employees</p>
+          <h1 className="text-3xl font-bold text-foreground">Customer Management</h1>
+          <p className="text-muted-foreground">Manage registered customers</p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
       </div>
 
       {/* Filters and Search */}
@@ -109,25 +89,7 @@ export default function UserManagement() {
                 className="pl-10"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
-                  Role: {selectedRole}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setSelectedRole('All')}>
-                  All Roles
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedRole('Customer')}>
-                  Customer
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedRole('Employee')}>
-                  Employee
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
           </div>
         </CardContent>
       </Card>
@@ -135,16 +97,19 @@ export default function UserManagement() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Users ({filteredUsers.length})</CardTitle>
-          <CardDescription>Manage user accounts and permissions</CardDescription>
+          <CardTitle>Customers ({filteredUsers.length})</CardTitle>
+          <CardDescription>Manage customer accounts</CardDescription>
         </CardHeader>
         <CardContent>
+          {error && <div className="text-sm text-destructive mb-3">{error}</div>}
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Loading...</div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Join Date</TableHead>
                 <TableHead>Vehicles</TableHead>
@@ -157,58 +122,104 @@ export default function UserManagement() {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'Employee' ? 'secondary' : 'outline'}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>
-                      {user.status}
+                    <Badge variant={user.status?.toLowerCase() === 'active' ? 'default' : 'destructive'}>
+                      {user.status || 'Active'}
                     </Badge>
                   </TableCell>
                   <TableCell>{user.joinDate}</TableCell>
                   <TableCell>{user.vehicles}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit User
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          {user.status === 'Active' ? (
-                            <>
-                              <UserX className="mr-2 h-4 w-4" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Activate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditId(user.id)
+                        setEditName(user.name || '')
+                        setEditPhone((user as any).phone || '')
+                        setEditStatus((user.status as any)?.toLowerCase() === 'inactive' ? 'INACTIVE' : 'ACTIVE')
+                        setEditError(null)
+                        setEditOpen(true)
+                      }}
+                    >
+                      Update
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={async () => {
+                        try {
+                          await deleteCustomer(user.id)
+                          setCustomers(prev => prev.filter(c => c.id !== user.id))
+                        } catch (e: any) {
+                          setError(e?.message || 'Failed to delete customer')
+                        }
+                      }}
+                    >
+                      Delete
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
+      {/* Edit Customer Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>Update customer details.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={async e => {
+              e.preventDefault()
+              if (editId == null) return
+              setEditError(null)
+              setEditLoading(true)
+              try {
+                await updateCustomer(editId, { name: editName, phone: editPhone, status: editStatus })
+                const data = await listCustomers()
+                setCustomers(data)
+                setEditOpen(false)
+              } catch (err: any) {
+                setEditError(err?.message || 'Failed to update customer')
+              } finally {
+                setEditLoading(false)
+              }
+            }}
+          >
+            {editError && <div className="text-sm text-destructive">{editError}</div>}
+            <div className="space-y-2">
+              <label className="text-sm" htmlFor="cust-name">Full Name</label>
+              <Input id="cust-name" value={editName} onChange={e => setEditName(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm" htmlFor="cust-phone">Phone</label>
+              <Input id="cust-phone" value={editPhone} onChange={e => setEditPhone(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm" htmlFor="cust-status">Status</label>
+              <select
+                id="cust-status"
+                className="bg-background border border-border rounded-md h-9 px-3 text-sm"
+                value={editStatus}
+                onChange={e => setEditStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={editLoading}>{editLoading ? 'Saving...' : 'Save'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

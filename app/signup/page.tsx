@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Car, Wrench, Loader2, ArrowLeft } from 'lucide-react'
+import { register as registerApi, login as loginApi, me } from '@/services/auth'
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -27,10 +28,10 @@ export default function SignupPage() {
     vehicleMake: '',
     vehicleModel: '',
     vehicleYear: '',
-    vehiclePlate: '',
   })
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleInputChange = (field: string, value: string) => {
@@ -43,15 +44,22 @@ export default function SignupPage() {
 
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // Mock registration success
-    localStorage.setItem('userRole', 'customer')
-    localStorage.setItem('userEmail', formData.email)
-    router.push('/customer/dashboard')
-
-    setIsLoading(false)
+    setError(null)
+    try {
+      // Register
+      await registerApi(formData)
+      // Login after register
+      await loginApi(formData.email, formData.password)
+      const user = await me()
+      const primaryRole = (user?.roles?.[0] || '').toLowerCase()
+      if (primaryRole === 'admin') router.push('/admin/dashboard')
+      else if (primaryRole === 'employee') router.push('/employee/dashboard')
+      else router.push('/customer/dashboard')
+    } catch (e: any) {
+      setError(e?.message || 'Registration failed')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -91,6 +99,11 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleSignup} className="space-y-4">
+              {error && (
+                <div className="text-sm text-destructive" role="alert">
+                  {error}
+                </div>
+              )}
               {/* Personal Information */}
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-foreground">Personal Information</h3>
@@ -201,20 +214,6 @@ export default function SignupPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="vehiclePlate">License Plate</Label>
-                    <Input
-                      id="vehiclePlate"
-                      placeholder="e.g., ABC-1234"
-                      value={formData.vehiclePlate}
-                      onChange={e =>
-                        handleInputChange('vehiclePlate', e.target.value.toUpperCase())
-                      }
-                      required
-                      className="bg-input border-border"
-                    />
                   </div>
                 </div>
               </div>

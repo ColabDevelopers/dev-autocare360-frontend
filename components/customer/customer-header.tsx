@@ -15,17 +15,37 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Search, MessageCircle, Settings, User } from 'lucide-react'
 import { LiveNotifications } from '@/components/real-time/live-notifications'
+import { me } from '@/services/auth'
+import { useRouter } from 'next/navigation'
 
 export function CustomerHeader() {
+  const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
-    const email = localStorage.getItem('userEmail') || ''
-    setUserEmail(email)
+    let mounted = true
+    ;(async () => {
+      try {
+        const u = await me()
+        if (!mounted) return
+        setUserEmail(u?.email || '')
+        setUserName(u?.name || '')
+      } catch {
+        // ignore, header remains minimal
+      }
+    })()
+    return () => {
+      mounted = false
+    }
   }, [])
 
-  const getInitials = (email: string) => {
-    return email.split('@')[0].slice(0, 2).toUpperCase()
+  const getInitials = (name: string, email: string) => {
+    if (name) {
+      const parts = name.trim().split(' ')
+      return parts.slice(0, 2).map(p => p[0]?.toUpperCase()).join('') || 'U'
+    }
+    return (email.split('@')[0] || 'U').slice(0, 2).toUpperCase()
   }
 
   return (
@@ -62,7 +82,7 @@ export function CustomerHeader() {
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {getInitials(userEmail)}
+                    {getInitials(userName, userEmail)}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -75,11 +95,11 @@ export function CustomerHeader() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push('/customer/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => router.push('/customer/profile')}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>

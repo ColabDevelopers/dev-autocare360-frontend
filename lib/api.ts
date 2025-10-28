@@ -1,32 +1,48 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8080',
+  BASE_URL: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_BASE) || 'http://localhost:8080',
   ENDPOINTS: {
     USERS: '/api/users',
     APPOINTMENTS: '/api/appointments',
     AVAILABILITY: '/api/availability',
-  }
+  },
+}
+
+function getAuthHeader(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  const token = localStorage.getItem('accessToken')
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 // API Helper function
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_CONFIG.BASE_URL}${endpoint}`
-  
+
+  const headers = new Headers(options.headers as HeadersInit)
+  headers.set('Content-Type', 'application/json')
+  const auth = getAuthHeader()
+  Object.entries(auth).forEach(([k, v]) => headers.set(k, v))
+
   const defaultOptions: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
     ...options,
   }
 
   try {
     const response = await fetch(url, defaultOptions)
-    
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      let message = `HTTP error! status: ${response.status}`
+      try {
+        const data = await response.json()
+        if (data?.error?.message) message = data.error.message
+      } catch {}
+      throw new Error(message)
     }
-    
+
+    // No content
+    if (response.status === 204) return null
+
     return await response.json()
   } catch (error) {
     console.error('API call failed:', error)
