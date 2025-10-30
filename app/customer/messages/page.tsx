@@ -119,17 +119,35 @@ export default function CustomerMessages() {
   useEffect(() => {
     if (messaging.messages.length > 0) {
       const latestMessage = messaging.messages[messaging.messages.length - 1]
-      console.log('Received WebSocket message:', latestMessage)
+      console.log('Customer received WebSocket message:', latestMessage)
+      console.log('Current user ID:', currentUserId)
+      console.log('Message sender ID:', latestMessage.senderId)
+      console.log('Message receiver ID:', latestMessage.receiverId)
       
-      setMessages(prev => {
-        // Avoid duplicates
-        if (prev.some(m => m.id === latestMessage.id)) {
-          return prev
-        }
-        return [...prev, latestMessage]
-      })
+      // Add message if it's relevant to this customer
+      // 1. Customer sent it (senderId = currentUserId)
+      // 2. Employee sent it to this customer (receiverId = currentUserId)
+      const isRelevant = 
+        latestMessage.senderId === currentUserId || 
+        latestMessage.receiverId === currentUserId
+      
+      console.log('Is message relevant to customer?', isRelevant)
+      
+      if (isRelevant) {
+        setMessages(prev => {
+          // Avoid duplicates
+          if (prev.some(m => m.id === latestMessage.id)) {
+            console.log('Duplicate message, skipping')
+            return prev
+          }
+          console.log('Adding message to customer chat')
+          return [...prev, latestMessage]
+        })
+      } else {
+        console.log('Message not relevant to this customer, skipping')
+      }
     }
-  }, [messaging.messages])
+  }, [messaging.messages, currentUserId])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -141,9 +159,12 @@ export default function CustomerMessages() {
       const authToken = token || localStorage.getItem('accessToken')
       const url = apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
       
-      // Get all conversations (for customers, this returns messages to/from employee pool)
-      const response = await axios.get(
-        `${url}/api/messages/conversations`,
+      console.log('Loading all customer messages for userId:', userId)
+      
+      // Use the dedicated customer messages endpoint
+      // This loads ALL messages (broadcasts sent + employee replies received)
+      const messagesResponse = await axios.get(
+        `${url}/api/messages/customer/all`,
         {
           headers: { 
             'Authorization': `Bearer ${authToken}`,
@@ -152,24 +173,13 @@ export default function CustomerMessages() {
         }
       )
       
-      console.log('Conversations:', response.data)
+      console.log('Loaded customer messages:', messagesResponse.data)
+      setMessages(messagesResponse.data)
       
-      // Get messages from the first conversation (should be employee pool)
-      if (response.data && response.data.length > 0) {
-        const firstConv = response.data[0]
-        const messagesResponse = await axios.get(
-          `${url}/api/messages/conversation/${firstConv.userId}`,
-          {
-            headers: { 
-              'Authorization': `Bearer ${authToken}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-        setMessages(messagesResponse.data)
-      }
     } catch (error) {
-      console.error('Error loading conversation:', error)
+      console.error('Error loading customer messages:', error)
+      // Even on error, set empty array to show UI
+      setMessages([])
     }
   }
 

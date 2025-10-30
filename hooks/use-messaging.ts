@@ -30,9 +30,15 @@ export function useMessaging(userId: number): UseMessagingReturn {
 
   const connect = useCallback(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    const token = localStorage.getItem('accessToken')
+    
     const socket = new SockJS(`${apiUrl}/ws`)
     const client = new Client({
       webSocketFactory: () => socket as any,
+      connectHeaders: {
+        // Send JWT token in CONNECT frame headers for authentication
+        Authorization: token ? `Bearer ${token}` : '',
+      },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -40,7 +46,7 @@ export function useMessaging(userId: number): UseMessagingReturn {
         console.log('STOMP Debug:', str)
       },
       onConnect: () => {
-        console.log('WebSocket Connected')
+        console.log('WebSocket Connected with authentication')
         setConnected(true)
       },
       onDisconnect: () => {
@@ -65,26 +71,27 @@ export function useMessaging(userId: number): UseMessagingReturn {
     }
 
     // Subscribe to user-specific message queue (for customers receiving employee replies)
+    // Spring automatically routes to the authenticated user based on Principal
     subscriptionRef.current = client.subscribe(
-      `/user/${userId}/queue/messages`,
+      `/user/queue/messages`,
       (message: IMessage) => {
         const newMessage = JSON.parse(message.body) as Message
-        console.log('Received message:', newMessage)
+        console.log('✅ Received DIRECT message on /user/queue/messages:', newMessage)
         setMessages((prev) => [...prev, newMessage])
       }
     )
-    console.log(`Subscribed to /user/${userId}/queue/messages`)
+    console.log(`✅ Subscribed to /user/queue/messages (will receive messages for current authenticated user)`)
     
     // Also subscribe to employee broadcast topic (for employees to receive all customer messages)
     employeeSubscriptionRef.current = client.subscribe(
       `/topic/employee-messages`,
       (message: IMessage) => {
         const newMessage = JSON.parse(message.body) as Message
-        console.log('Received broadcast message:', newMessage)
+        console.log('✅ Received BROADCAST message on /topic/employee-messages:', newMessage)
         setMessages((prev) => [...prev, newMessage])
       }
     )
-    console.log(`Subscribed to /topic/employee-messages`)
+    console.log(`✅ Subscribed to /topic/employee-messages`)
   }, [userId])
 
   const unsubscribe = useCallback(() => {

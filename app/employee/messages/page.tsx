@@ -87,23 +87,40 @@ export default function EmployeeMessages() {
     if (messaging.messages.length > 0) {
       const latestMessage = messaging.messages[messaging.messages.length - 1]
       
+      console.log('Employee received WebSocket message:', latestMessage)
+      console.log('Selected conversation:', selectedConversation)
+      
       // If message is from selected conversation, add to chat
-      if (selectedConversation && 
-          (latestMessage.senderId === selectedConversation.userId || 
-           latestMessage.receiverId === selectedConversation.userId)) {
-        setMessages(prev => {
-          // Avoid duplicates
-          if (prev.some(m => m.id === latestMessage.id)) {
-            return prev
-          }
-          return [...prev, latestMessage]
-        })
+      if (selectedConversation) {
+        // Check if message is related to this conversation
+        // 1. Customer sent broadcast (receiverId is null) AND customer is the selected conversation
+        // 2. Customer sent direct message to this employee
+        // 3. This employee sent message to customer
+        const isRelated = 
+          (latestMessage.senderId === selectedConversation.userId && 
+           (latestMessage.receiverId === null || latestMessage.receiverId === currentUserId)) ||
+          (latestMessage.receiverId === selectedConversation.userId && 
+           latestMessage.senderId === currentUserId)
+        
+        console.log('Is message related to open conversation?', isRelated)
+        
+        if (isRelated) {
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === latestMessage.id)) {
+              console.log('Duplicate message, skipping')
+              return prev
+            }
+            console.log('Adding message to conversation')
+            return [...prev, latestMessage]
+          })
+        }
       }
       
-      // Reload conversations to update last message and unread counts
+      // Always reload conversations to update last message and unread counts
       loadConversations()
     }
-  }, [messaging.messages, selectedConversation])
+  }, [messaging.messages, selectedConversation, currentUserId])
 
   // Load conversation messages when selected
   useEffect(() => {
@@ -250,7 +267,7 @@ export default function EmployeeMessages() {
             </div>
 
             {/* Conversations List */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
               {filteredConversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full p-4 text-center">
                   <MessageCircle className="h-16 w-16 text-muted-foreground mb-3 opacity-50" />
@@ -338,7 +355,7 @@ export default function EmployeeMessages() {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[url('/grid.svg')] bg-muted/5">
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 p-4 space-y-3 bg-[url('/grid.svg')] bg-muted/5">
                   {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                       <MessageCircle className="h-20 w-20 text-muted-foreground mb-4 opacity-20" />

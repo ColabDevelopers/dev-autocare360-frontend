@@ -138,6 +138,16 @@
   background: rgb(var(--muted));
 }
 
+/* Custom scrollbar for better visibility */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
   background: rgb(var(--muted-foreground));
   border-radius: 3px;
