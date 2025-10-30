@@ -23,6 +23,9 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const auth = getAuthHeader()
   Object.entries(auth).forEach(([k, v]) => headers.set(k, v))
 
+  // DEBUG: Log if token is being sent
+  console.log('🔐 API Call:', endpoint, 'Has Token?', !!auth.Authorization, 'Token:', auth.Authorization?.substring(0, 50) + '...')
+
   const defaultOptions: RequestInit = {
     headers,
     ...options,
