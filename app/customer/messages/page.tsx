@@ -1,149 +1,374 @@
 'use client'
 
+import { useEffect, useState, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Send, Search, MessageCircle } from 'lucide-react'
+import { Send, MessageCircle, AlertCircle } from 'lucide-react'
+import { useMessaging } from '@/hooks/use-messaging'
+import axios from 'axios'
 
-const conversations = [
-  {
-    id: 1,
-    name: 'Mike Johnson',
-    role: 'Technician',
-    lastMessage: 'Your brake inspection is complete. Please review the report.',
-    time: '2 min ago',
-    unread: 2,
-    avatar: '/placeholder.svg?height=40&width=40',
-  },
-  {
-    id: 2,
-    name: 'Sarah Wilson',
-    role: 'Service Advisor',
-    lastMessage: 'Thank you for choosing our service. Your appointment is confirmed.',
-    time: '1 hour ago',
-    unread: 0,
-    avatar: '/placeholder.svg?height=40&width=40',
-  },
-  {
-    id: 3,
-    name: 'AutoCare360 Support',
-    role: 'Support Team',
-    lastMessage: "We've received your feedback and will address it promptly.",
-    time: 'Yesterday',
-    unread: 0,
-    avatar: '/placeholder.svg?height=40&width=40',
-  },
-]
+interface Message {
+  id: number
+  senderId: number
+  receiverId: number
+  senderName: string
+  senderRole: string
+  message: string
+  createdAt: string
+  isRead: boolean
+}
+
+interface Employee {
+  id: number
+  name: string
+  email: string
+  role: string
+}
 
 export default function CustomerMessages() {
+  const [employee, setEmployee] = useState<Employee | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [newMessage, setNewMessage] = useState('')
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  const messaging = useMessaging(currentUserId || 0)
+
+  // Load user info and designated employee on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        console.log('Token check:', {
+          exists: !!token,
+          length: token?.length,
+          preview: token?.substring(0, 20) + '...'
+        })
+
+        if (!token) {
+          setError('Not authenticated. Please log in.')
+          setLoading(false)
+          return
+        }
+
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+        console.log('API URL:', apiUrl)
+
+        // Get current user info
+        const userResponse = await axios.get(`${apiUrl}/api/auth/me`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        console.log('Current user:', userResponse.data)
+        setCurrentUserId(userResponse.data.id)
+
+        // Get designated employee (shared support inbox - can be null)
+        try {
+          const employeeResponse = await axios.get(
+            `${apiUrl}/api/messages/designated-employee`,
+            {
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          )
+          console.log('Designated employee:', employeeResponse.data)
+          setEmployee(employeeResponse.data)
+
+          // Load existing conversation (all messages to/from employee pool)
+          await loadConversation(userResponse.data.id, token, apiUrl)
+        } catch (empError: any) {
+          console.warn('No employee found or error:', empError)
+          // Continue even if no employee - customer can still send to pool
+          setEmployee({ id: 0, name: 'Support', email: 'support@autocare360.com', role: 'EMPLOYEE' })
+        }
+      } catch (error: any) {
+        console.error('Error loading data:', error)
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          setError('Session expired. Please log in again.')
+        } else {
+          setError('Failed to load messages. Please try again.')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
+
+  // Subscribe to WebSocket when user ID is available
+  useEffect(() => {
+    if (currentUserId) {
+      messaging.subscribe()
+    }
+    return () => {
+      messaging.unsubscribe()
+    }
+  }, [currentUserId, messaging])
+
+  // Handle incoming WebSocket messages
+  useEffect(() => {
+    if (messaging.messages.length > 0) {
+      const latestMessage = messaging.messages[messaging.messages.length - 1]
+      console.log('Received WebSocket message:', latestMessage)
+      
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === latestMessage.id)) {
+          return prev
+        }
+        return [...prev, latestMessage]
+      })
+    }
+  }, [messaging.messages])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const loadConversation = async (userId: number, token?: string, apiUrl?: string) => {
+    try {
+      const authToken = token || localStorage.getItem('token')
+      const url = apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+      
+      // Get all conversations (for customers, this returns messages to/from employee pool)
+      const response = await axios.get(
+        `${url}/api/messages/conversations`,
+        {
+          headers: { 
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+      
+      console.log('Conversations:', response.data)
+      
+      // Get messages from the first conversation (should be employee pool)
+      if (response.data && response.data.length > 0) {
+        const firstConv = response.data[0]
+        const messagesResponse = await axios.get(
+          `${url}/api/messages/conversation/${firstConv.userId}`,
+          {
+            headers: { 
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+        setMessages(messagesResponse.data)
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) {
+      console.log('Empty message, not sending')
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+      
+      if (!token) {
+        setError('Not authenticated. Please log in again.')
+        console.error('No token found in localStorage')
+        return
+      }
+
+      console.log('Sending message:', {
+        token_preview: token.substring(0, 20) + '...',
+        message: newMessage,
+        receiverId: null
+      })
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+      
+      // Send message to employee pool (receiverId = null)
+      const response = await axios.post(
+        `${apiUrl}/api/messages`,
+        {
+          receiverId: null,  // Broadcast to employee pool
+          message: newMessage
+        },
+        {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      console.log('Message sent successfully:', response.data)
+
+      // Add sent message to local state immediately
+      setMessages(prev => [...prev, response.data])
+      setNewMessage('')
+      setError(null)
+      
+    } catch (error: any) {
+      console.error('Error sending message:', error)
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setError('Session expired. Please log out and log in again.')
+        // Optionally redirect to login
+        // window.location.href = '/login'
+      } else {
+        setError('Failed to send message. Please try again.')
+      }
+    }
+  }
+
+  const formatMessageTime = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Loading messages...</p>
+      </div>
+    )
+  }
+
+  if (error && error.includes('log in')) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <AlertCircle className="h-16 w-16 text-destructive" />
+        <p className="text-destructive font-medium">{error}</p>
+        <Button onClick={() => window.location.href = '/login'}>
+          Go to Login
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Messages</h1>
-        <Button>
-          <MessageCircle className="h-4 w-4 mr-2" />
-          New Message
-        </Button>
+        <Badge variant={messaging.connected ? "default" : "secondary"}>
+          {messaging.connected ? "Connected" : "Disconnected"}
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Conversations List */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Conversations</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search messages..." className="pl-10" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {conversations.map(conversation => (
-              <div
-                key={conversation.id}
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer"
-              >
-                <Avatar>
-                  <AvatarImage src={conversation.avatar || '/placeholder.svg'} />
-                  <AvatarFallback>
-                    {conversation.name
-                      .split(' ')
-                      .map(n => n[0])
-                      .join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium truncate">{conversation.name}</p>
-                    {conversation.unread > 0 && (
-                      <Badge variant="default" className="ml-2">
-                        {conversation.unread}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">{conversation.role}</p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {conversation.lastMessage}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{conversation.time}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      {error && (
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
-        {/* Chat Area */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
+      <Card className="h-[calc(100vh-12rem)]">
+        <div className="h-full flex flex-col">
+          {/* Header with employee info */}
+          <CardHeader className="border-b flex-shrink-0">
             <div className="flex items-center space-x-3">
-              <Avatar>
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>MJ</AvatarFallback>
+              <Avatar className="h-12 w-12">
+                <AvatarImage src="/placeholder.svg" />
+                <AvatarFallback>
+                  {employee?.name.split(' ').map(n => n[0]).join('') || 'SP'}
+                </AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle>Mike Johnson</CardTitle>
-                <CardDescription>Technician • Online</CardDescription>
+                <CardTitle className="text-lg">{employee?.name || 'Support Team'}</CardTitle>
+                <CardDescription>
+                  {employee?.role || 'Employee'} • {messaging.connected ? 'Online' : 'Offline'}
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="h-96 border rounded-lg p-4 overflow-y-auto space-y-4">
-              {/* Sample messages */}
-              <div className="flex justify-start">
-                <div className="bg-muted p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">
-                    Hi! I've completed the brake inspection on your vehicle.
+
+          <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/10">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <MessageCircle className="h-16 w-16 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground text-lg font-medium">
+                    No messages yet
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">10:30 AM</p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-primary text-primary-foreground p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">Great! What did you find?</p>
-                  <p className="text-xs opacity-70 mt-1">10:32 AM</p>
-                </div>
-              </div>
-              <div className="flex justify-start">
-                <div className="bg-muted p-3 rounded-lg max-w-xs">
-                  <p className="text-sm">
-                    The front brake pads are at 20% and should be replaced soon. I've sent you a
-                    detailed report.
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Start a conversation with our support team
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">10:35 AM</p>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${
+                        message.senderId === currentUserId ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[70%] p-3 rounded-lg shadow-sm ${
+                          message.senderId === currentUserId
+                            ? 'bg-primary text-primary-foreground rounded-br-none'
+                            : 'bg-white dark:bg-gray-800 border rounded-bl-none'
+                        }`}
+                      >
+                        <p className="text-sm break-words whitespace-pre-wrap">{message.message}</p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            message.senderId === currentUserId
+                              ? 'opacity-70'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {formatMessageTime(message.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
             </div>
 
-            <div className="flex space-x-2">
-              <Input placeholder="Type your message..." className="flex-1" />
-              <Button>
-                <Send className="h-4 w-4" />
-              </Button>
+            {/* Input Area */}
+            <div className="border-t p-4 bg-white dark:bg-gray-900 flex-shrink-0">
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Type your message..."
+                  className="flex-1"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendMessage()
+                    }
+                  }}
+                  disabled={loading || !!error}
+                  autoFocus
+                />
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={!newMessage.trim() || loading || !!error}
+                  type="button"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
-        </Card>
-      </div>
+        </div>
+      </Card>
     </div>
   )
 }
