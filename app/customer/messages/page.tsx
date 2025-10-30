@@ -43,7 +43,7 @@ export default function CustomerMessages() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('accessToken')
         console.log('Token check:', {
           exists: !!token,
           length: token?.length,
@@ -60,7 +60,7 @@ export default function CustomerMessages() {
         console.log('API URL:', apiUrl)
 
         // Get current user info
-        const userResponse = await axios.get(`${apiUrl}/api/auth/me`, {
+        const userResponse = await axios.get(`${apiUrl}/users/me`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -138,7 +138,7 @@ export default function CustomerMessages() {
 
   const loadConversation = async (userId: number, token?: string, apiUrl?: string) => {
     try {
-      const authToken = token || localStorage.getItem('token')
+      const authToken = token || localStorage.getItem('accessToken')
       const url = apiUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
       
       // Get all conversations (for customers, this returns messages to/from employee pool)
@@ -180,7 +180,7 @@ export default function CustomerMessages() {
     }
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       
       if (!token) {
         setError('Not authenticated. Please log in again.')
@@ -213,8 +213,8 @@ export default function CustomerMessages() {
 
       console.log('Message sent successfully:', response.data)
 
-      // Add sent message to local state immediately
-      setMessages(prev => [...prev, response.data])
+      // Don't add to local state - WebSocket will handle it
+      // setMessages(prev => [...prev, response.data])
       setNewMessage('')
       setError(null)
       

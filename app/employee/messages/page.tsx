@@ -47,16 +47,20 @@ export default function EmployeeMessages() {
   useEffect(() => {
     const loadUserAndConversations = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('accessToken')
         if (!token) return
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
         // Get current user info
-        const userResponse = await axios.get(`${apiUrl}/api/auth/me`, {
+        const userResponse = await axios.get(`${apiUrl}/users/me`, {
           headers: { Authorization: `Bearer ${token}` }
         })
-        setCurrentUserId(userResponse.data.id)
+        
+        // The response structure is { user: { id, ... }, roles: [...] }
+        const userId = userResponse.data.user?.id || userResponse.data.id
+        console.log('User data:', userResponse.data, 'userId:', userId)
+        setCurrentUserId(userId)
 
         // Get conversations
         await loadConversations()
@@ -127,7 +131,7 @@ export default function EmployeeMessages() {
 
   const loadConversations = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
       const response = await axios.get(
         `${apiUrl}/api/messages/conversations`,
@@ -144,7 +148,7 @@ export default function EmployeeMessages() {
 
   const loadConversationMessages = async (otherUserId: number) => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
       const response = await axios.get(
         `${apiUrl}/api/messages/conversation/${otherUserId}`,
@@ -174,7 +178,7 @@ export default function EmployeeMessages() {
     if (!newMessage.trim() || !selectedConversation) return
 
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('accessToken')
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
       
       // Send via REST API

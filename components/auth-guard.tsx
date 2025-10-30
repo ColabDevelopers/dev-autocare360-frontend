@@ -22,20 +22,35 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     const checkAuth = async () => {
       try {
         const token = loadToken()
+        console.log('AuthGuard: Token check', { exists: !!token, length: token?.length })
+        
         if (!token) {
+          console.log('AuthGuard: No token, redirecting to login')
           router.push('/login')
           return
         }
+
+        console.log('AuthGuard: Fetching user info...')
         const user = await me()
+        console.log('AuthGuard: User data received', { user, roles: user?.roles })
+        
+        // Backend returns roles as lowercase strings in array: ["customer", "admin", "employee"]
         const userRole = (user?.roles?.[0] || '').toLowerCase()
+        console.log('AuthGuard: User role', { userRole, allowedRoles })
+        
         if (!allowedRoles.includes(userRole)) {
+          console.log('AuthGuard: Role not allowed, redirecting based on role')
           if (userRole === 'admin') router.push('/admin/dashboard')
           else if (userRole === 'employee') router.push('/employee/dashboard')
-          else router.push('/customer/dashboard')
+          else if (userRole === 'customer') router.push('/customer/dashboard')
+          else router.push('/login')
           return
         }
+        
+        console.log('AuthGuard: Authorization successful')
         setIsAuthorized(true)
       } catch (e) {
+        console.error('AuthGuard: Error during auth check', e)
         router.push('/login')
       } finally {
         setIsLoading(false)
