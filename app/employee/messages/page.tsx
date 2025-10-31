@@ -311,7 +311,7 @@ export default function EmployeeMessages() {
                           {conversation.name}
                         </p>
                         <p className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                          {formatConversationTime(conversation.time)}
+                          {conversation.time}
                         </p>
                       </div>
                       <p className={`text-sm truncate ${conversation.unreadCount > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
