@@ -18,6 +18,7 @@ import {
   UserCheck,
   FileText,
   LogOut,
+  Activity, // ⭐ NEW IMPORT FOR WORKLOAD
 } from 'lucide-react'
 import { clearToken } from '@/lib/auth'
 
@@ -25,6 +26,7 @@ const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'User Management', icon: Users },
   { href: '/admin/employees', label: 'Employee Management', icon: UserCheck },
+  { href: '/admin/workload', label: 'Workload Monitoring', icon: Activity }, // ⭐ NEW LINE ADDED
   { href: '/admin/services', label: 'Service Management', icon: Car },
   { href: '/admin/appointments', label: 'Appointments', icon: Calendar },
   { href: '/admin/projects', label: 'Projects', icon: ClipboardList },
@@ -73,7 +75,6 @@ export function AdminSidebar() {
         {adminNavItems.map(item => {
           const Icon = item.icon
           const isActive = pathname === item.href
-
           return (
             <Link key={item.href} href={item.href}>
               <Button

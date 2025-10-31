@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, UserPlus, Clock, CheckCircle } from 'lucide-react'
+import { Search, UserPlus, Clock, CheckCircle, ArrowRight } from 'lucide-react'
 import { listEmployees, type EmployeeResponse, createEmployee, updateEmployee, deleteEmployee } from '@/services/employees'
 import {
   Dialog,
@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { WorkloadOverview } from '@/components/admin/workload/workload-overview'
 
 export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -163,6 +164,25 @@ export default function EmployeesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ⭐⭐⭐ NEW WORKLOAD MONITORING SECTION ⭐⭐⭐ */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Workload Monitoring</h2>
+            <p className="text-sm text-muted-foreground">Real-time employee capacity and task distribution</p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.href = '/admin/workload'}
+          >
+            View Full Dashboard
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+        <WorkloadOverview />
+      </div>
+      {/* ⭐⭐⭐ END OF NEW SECTION ⭐⭐⭐ */}
 
       <Card>
         <CardHeader>
@@ -304,7 +324,7 @@ export default function EmployeesPage() {
               <label className="text-sm" htmlFor="edit-status">Status</label>
               <select
                 id="edit-status"
-                className="bg-background border border-border rounded-md h-9 px-3 text-sm"
+                className="bg-background border border-border rounded-md h-9 px-3 text-sm w-full"
                 value={editStatus}
                 onChange={e => setEditStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
               >
