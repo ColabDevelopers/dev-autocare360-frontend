@@ -1,29 +1,87 @@
-// lib/vehicles.ts
-import { apiCall, API_CONFIG } from './api'
-import { Vehicle, CreateVehiclePayload, UpdateVehiclePayload } from '../types/vehicle'
+import { Vehicle } from "@/types/vehicle";
 
-const base = API_CONFIG.BASE_URL
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
 
-export async function getVehicles(params?: Record<string, any>) {
-  // params can be serialized by the caller or extended here
-  return (await apiCall(`/api/vehicles${params ? '?' + new URLSearchParams(params).toString() : ''}`)) as {
-    items: Vehicle[]
-    total: number
+console.log("🚀 API_BASE loaded:", API_BASE);
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("accessToken");
+  return {
+    "Content-Type": "application/json",
+    Authorization: token ? `Bearer ${token}` : "",
+  };
+}
+
+// ✅ Exported functions (these must match what hooks use)
+export async function listVehicles() {
+  console.log("🌍 Fetching vehicles from:", `${API_BASE}/api/vehicles`);
+  const res = await fetch(`${API_BASE}/api/vehicles`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    console.error("Failed to fetch vehicles:", res.status);
+    throw new Error(`Failed to fetch vehicles: ${res.status}`);
   }
+
+  const result = await res.json();
+  console.log("Vehicle data received:", result);
+  return result;
 }
 
 export async function getVehicle(id: string) {
-  return (await apiCall(`/api/vehicles/${id}`)) as Vehicle
+  const res = await fetch(`${API_BASE}/api/vehicles/${id}`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch vehicle: ${res.status}`);
+  }
+
+  return res.json();
 }
 
-export async function createVehicle(payload: CreateVehiclePayload) {
-  return (await apiCall(`/api/vehicles`, { method: 'POST', body: JSON.stringify(payload) })) as Vehicle
+export async function createVehicle(data: Partial<Vehicle>) {
+  const res = await fetch(`${API_BASE}/api/vehicles`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to create vehicle: ${res.status}`);
+  }
+
+  return res.json();
 }
 
-export async function updateVehicle(id: string, payload: UpdateVehiclePayload) {
-  return (await apiCall(`/api/vehicles/${id}`, { method: 'PUT', body: JSON.stringify(payload) })) as Vehicle
+export async function updateVehicle(id: string | number, data: Partial<Vehicle>) {
+  const res = await fetch(`${API_BASE}/api/vehicles/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to update vehicle: ${res.status}`);
+  }
+
+  return res.json();
 }
 
-export async function deleteVehicle(id: string) {
-  return await apiCall(`/api/vehicles/${id}`, { method: 'DELETE' })
+export async function deleteVehicle(id: number | string) {
+  const res = await fetch(`${API_BASE}/api/vehicles/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`Failed to delete vehicle (${res.status}):`, errText);
+    throw new Error(`Failed to delete vehicle: ${res.status}`);
+  }
+
+  return true;
 }
+
+

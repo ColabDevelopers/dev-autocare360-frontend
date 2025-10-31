@@ -1,46 +1,38 @@
-"use client"
-import { useEffect, useState, useCallback } from 'react'
-import { Vehicle, CreateVehiclePayload, UpdateVehiclePayload } from '../types/vehicle'
-import * as vehiclesApi from '../lib/vehicles'
+"use client";
+import { useEffect, useState } from "react";
+import { Vehicle } from "@/types/vehicle";
+import * as vehiclesApi from "@/lib/vehicles";
 
-export function useVehicles(initialPage = 1, perPage = 10) {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+export function useVehicles() {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetch = useCallback(async (page = initialPage) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await vehiclesApi.getVehicles({ page, perPage })
-      setVehicles(res.items || [])
-      setTotal(res.total || 0)
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load vehicles')
-    } finally {
-      setLoading(false)
-    }
-  }, [initialPage, perPage])
+  useEffect(() => {
+    let mounted = true;
 
-  useEffect(() => { fetch(initialPage) }, [fetch, initialPage])
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await vehiclesApi.listVehicles();
+        const list = Array.isArray(data)
+          ? data
+          : (data as { items?: Vehicle[] }).items || [];
 
-  const createVehicle = async (payload: CreateVehiclePayload) => {
-    const created = await vehiclesApi.createVehicle(payload)
-    setVehicles(prev => [created, ...prev])
-    return created
-  }
+        if (mounted) setVehicles(list);
+      } catch (err: any) {
+        console.error("Error loading vehicles", err);
+        setError(err?.message || "Failed to load vehicles");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-  const updateVehicle = async (id: string, payload: UpdateVehiclePayload) => {
-    const updated = await vehiclesApi.updateVehicle(id, payload)
-    setVehicles(prev => prev.map(v => (v.id === id ? updated : v)))
-    return updated
-  }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  const deleteVehicle = async (id: string) => {
-    await vehiclesApi.deleteVehicle(id)
-    setVehicles(prev => prev.filter(v => v.id !== id))
-  }
-
-  return { vehicles, total, loading, error, refresh: fetch, createVehicle, updateVehicle, deleteVehicle }
+  return { vehicles, loading, error, setVehicles };
 }
