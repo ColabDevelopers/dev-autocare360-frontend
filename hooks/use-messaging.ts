@@ -48,10 +48,43 @@ export function useMessaging(userId: number): UseMessagingReturn {
       onConnect: () => {
         console.log('WebSocket Connected with authentication')
         setConnected(true)
+
+        // Auto-subscribe on successful connect (idempotent)
+        if (!subscriptionRef.current) {
+          subscriptionRef.current = client.subscribe(
+            `/user/queue/messages`,
+            (message: IMessage) => {
+              const newMessage = JSON.parse(message.body) as Message
+              console.log('✅ [auto] DIRECT /user/queue/messages:', newMessage)
+              setMessages((prev) => [...prev, newMessage])
+            }
+          )
+          console.log(`✅ Auto-subscribed to /user/queue/messages`)
+        }
+        if (!employeeSubscriptionRef.current) {
+          employeeSubscriptionRef.current = client.subscribe(
+            `/topic/employee-messages`,
+            (message: IMessage) => {
+              const newMessage = JSON.parse(message.body) as Message
+              console.log('✅ [auto] BROADCAST /topic/employee-messages:', newMessage)
+              setMessages((prev) => [...prev, newMessage])
+            }
+          )
+          console.log(`✅ Auto-subscribed to /topic/employee-messages`)
+        }
       },
       onDisconnect: () => {
         console.log('WebSocket Disconnected')
         setConnected(false)
+        // Clean up subs on disconnect
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe()
+          subscriptionRef.current = null
+        }
+        if (employeeSubscriptionRef.current) {
+          employeeSubscriptionRef.current.unsubscribe()
+          employeeSubscriptionRef.current = null
+        }
       },
       onStompError: (frame: IFrame) => {
         console.error('STOMP Error:', frame.headers['message'])
@@ -72,26 +105,30 @@ export function useMessaging(userId: number): UseMessagingReturn {
 
     // Subscribe to user-specific message queue (for customers receiving employee replies)
     // Spring automatically routes to the authenticated user based on Principal
-    subscriptionRef.current = client.subscribe(
-      `/user/queue/messages`,
-      (message: IMessage) => {
-        const newMessage = JSON.parse(message.body) as Message
-        console.log('✅ Received DIRECT message on /user/queue/messages:', newMessage)
-        setMessages((prev) => [...prev, newMessage])
-      }
-    )
-    console.log(`✅ Subscribed to /user/queue/messages (will receive messages for current authenticated user)`)
+    if (!subscriptionRef.current) {
+      subscriptionRef.current = client.subscribe(
+        `/user/queue/messages`,
+        (message: IMessage) => {
+          const newMessage = JSON.parse(message.body) as Message
+          console.log('✅ Received DIRECT message on /user/queue/messages:', newMessage)
+          setMessages((prev) => [...prev, newMessage])
+        }
+      )
+      console.log(`✅ Subscribed to /user/queue/messages (will receive messages for current authenticated user)`)
+    }
     
     // Also subscribe to employee broadcast topic (for employees to receive all customer messages)
-    employeeSubscriptionRef.current = client.subscribe(
-      `/topic/employee-messages`,
-      (message: IMessage) => {
-        const newMessage = JSON.parse(message.body) as Message
-        console.log('✅ Received BROADCAST message on /topic/employee-messages:', newMessage)
-        setMessages((prev) => [...prev, newMessage])
-      }
-    )
-    console.log(`✅ Subscribed to /topic/employee-messages`)
+    if (!employeeSubscriptionRef.current) {
+      employeeSubscriptionRef.current = client.subscribe(
+        `/topic/employee-messages`,
+        (message: IMessage) => {
+          const newMessage = JSON.parse(message.body) as Message
+          console.log('✅ Received BROADCAST message on /topic/employee-messages:', newMessage)
+          setMessages((prev) => [...prev, newMessage])
+        }
+      )
+      console.log(`✅ Subscribed to /topic/employee-messages`)
+    }
   }, [userId])
 
   const unsubscribe = useCallback(() => {
