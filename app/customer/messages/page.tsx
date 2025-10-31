@@ -38,6 +38,23 @@ export default function CustomerMessages() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
   const messaging = useMessaging(currentUserId || 0)
+  const processedSendersRef = useRef<Set<number>>(new Set())
+
+  // Helper: mark all messages from a given employee sender as read for this customer
+  const markSenderAsRead = async (senderId: number) => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      if (!token) return
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+      await axios.put(`${apiUrl}/api/messages/read/${senderId}` , {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      // Let headers/sidebars refresh unread badges immediately
+      try { window.dispatchEvent(new CustomEvent('unread:refresh')) } catch {}
+    } catch (e) {
+      console.warn('Failed to mark messages as read for sender', senderId, e)
+    }
+  }
 
   // Load user info and designated employee on mount
   useEffect(() => {
@@ -143,6 +160,11 @@ export default function CustomerMessages() {
           console.log('Adding message to customer chat')
           return [...prev, latestMessage]
         })
+
+        // If this is an employee -> customer message, mark it as read immediately
+        if (latestMessage.receiverId === currentUserId && latestMessage.senderId !== currentUserId) {
+          markSenderAsRead(latestMessage.senderId)
+        }
       } else {
         console.log('Message not relevant to this customer, skipping')
       }
@@ -153,6 +175,24 @@ export default function CustomerMessages() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // After messages load/update, mark any unread employee messages as read (deduped per sender)
+  useEffect(() => {
+    if (!currentUserId || messages.length === 0) return
+    const pendingSenderIds = new Set<number>()
+    for (const m of messages) {
+      const isIncomingFromEmployee = m.receiverId === currentUserId && m.senderId !== currentUserId && !m.isRead
+      if (isIncomingFromEmployee && !processedSendersRef.current.has(m.senderId)) {
+        pendingSenderIds.add(m.senderId)
+      }
+    }
+    if (pendingSenderIds.size > 0) {
+      pendingSenderIds.forEach(async sid => {
+        processedSendersRef.current.add(sid)
+        await markSenderAsRead(sid)
+      })
+    }
+  }, [messages, currentUserId])
 
   const loadConversation = async (userId: number, token?: string, apiUrl?: string) => {
     try {

@@ -57,6 +57,8 @@ export function useMessaging(userId: number): UseMessagingReturn {
               const newMessage = JSON.parse(message.body) as Message
               console.log('✅ [auto] DIRECT /user/queue/messages:', newMessage)
               setMessages((prev) => [...prev, newMessage])
+              // Direct messages to this user likely change unread count
+              try { window.dispatchEvent(new CustomEvent('unread:refresh')) } catch {}
             }
           )
           console.log(`✅ Auto-subscribed to /user/queue/messages`)
@@ -68,6 +70,8 @@ export function useMessaging(userId: number): UseMessagingReturn {
               const newMessage = JSON.parse(message.body) as Message
               console.log('✅ [auto] BROADCAST /topic/employee-messages:', newMessage)
               setMessages((prev) => [...prev, newMessage])
+              // Broadcasts may impact employee unread counters depending on backend rules
+              try { window.dispatchEvent(new CustomEvent('unread:refresh')) } catch {}
             }
           )
           console.log(`✅ Auto-subscribed to /topic/employee-messages`)
@@ -112,6 +116,7 @@ export function useMessaging(userId: number): UseMessagingReturn {
           const newMessage = JSON.parse(message.body) as Message
           console.log('✅ Received DIRECT message on /user/queue/messages:', newMessage)
           setMessages((prev) => [...prev, newMessage])
+          try { window.dispatchEvent(new CustomEvent('unread:refresh')) } catch {}
         }
       )
       console.log(`✅ Subscribed to /user/queue/messages (will receive messages for current authenticated user)`)
@@ -125,6 +130,7 @@ export function useMessaging(userId: number): UseMessagingReturn {
           const newMessage = JSON.parse(message.body) as Message
           console.log('✅ Received BROADCAST message on /topic/employee-messages:', newMessage)
           setMessages((prev) => [...prev, newMessage])
+          try { window.dispatchEvent(new CustomEvent('unread:refresh')) } catch {}
         }
       )
       console.log(`✅ Subscribed to /topic/employee-messages`)

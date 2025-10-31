@@ -182,6 +182,9 @@ export default function EmployeeMessages() {
         }
       )
 
+      // Notify UI to refresh unread badges immediately
+      try { window.dispatchEvent(new CustomEvent('unread:refresh')) } catch {}
+
       // Reload conversations to clear unread count
       await loadConversations()
     } catch (error) {

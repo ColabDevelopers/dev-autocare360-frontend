@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { clearToken } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useUnreadCount } from '@/hooks/use-unread-count'
 import {
   Calendar,
   Clock,
@@ -28,7 +29,7 @@ const navigationItems = [
   { icon: Wrench, label: 'Projects', href: '/employee/projects' },
   { icon: Clock, label: 'Time Logs', href: '/employee/time-logs' },
   { icon: Upload, label: 'Updates', href: '/employee/updates' },
-  { icon: MessageCircle, label: 'Messages', href: '/employee/messages', badge: '5' },
+  { icon: MessageCircle, label: 'Messages', href: '/employee/messages' },
   { icon: Users, label: 'Workload', href: '/employee/workload' },
 ]
 
@@ -36,6 +37,7 @@ export function EmployeeSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
+  const { count: unreadCount } = useUnreadCount(30000)
 
   const handleLogout = () => {
     clearToken()
@@ -93,12 +95,12 @@ export function EmployeeSidebar() {
                 {!isCollapsed && (
                   <>
                     <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge && (
+                    {item.href === '/employee/messages' && unreadCount > 0 && (
                       <Badge
                         variant="secondary"
                         className="ml-auto bg-primary text-primary-foreground"
                       >
-                        {item.badge}
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </Badge>
                     )}
                   </>
