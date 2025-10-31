@@ -1,54 +1,47 @@
-// API Configuration
+// lib/api.ts
 export const API_CONFIG = {
   BASE_URL: (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_BASE) || 'http://localhost:8080',
   ENDPOINTS: {
     USERS: '/api/users',
     APPOINTMENTS: '/api/appointments',
     AVAILABILITY: '/api/availability',
+    VEHICLES: '/api/vehicles',
+    SERVICES: '/api/services',
   },
 }
 
 function getAuthHeader(): Record<string, string> {
   if (typeof window === 'undefined') return {}
   const token = localStorage.getItem('accessToken')
+  
+  // Debug: Check if token exists
+  console.log('Token exists:', !!token)
+  
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 // API Helper function
-export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_CONFIG.BASE_URL}${endpoint}`
+export async function apiCall(endpoint: string, options: RequestInit = {}) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE || ''
+  const url = `${baseUrl}${endpoint}`
 
-  const headers = new Headers(options.headers as HeadersInit)
-  headers.set('Content-Type', 'application/json')
-  const auth = getAuthHeader()
-  Object.entries(auth).forEach(([k, v]) => headers.set(k, v))
+  const token = localStorage.getItem('accessToken')
 
-  // DEBUG: Log if token is being sent
-  console.log('🔐 API Call:', endpoint, 'Has Token?', !!auth.Authorization, 'Token:', auth.Authorization?.substring(0, 50) + '...')
-
-  const defaultOptions: RequestInit = {
-    headers,
-    ...options,
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
   }
 
-  try {
-    const response = await fetch(url, defaultOptions)
+  const res = await fetch(url, { ...options, headers })
 
-    if (!response.ok) {
-      let message = `HTTP error! status: ${response.status}`
-      try {
-        const data = await response.json()
-        if (data?.error?.message) message = data.error.message
-      } catch {}
-      throw new Error(message)
-    }
-
-    // No content
-    if (response.status === 204) return null
-
-    return await response.json()
-  } catch (error) {
-    console.error('API call failed:', error)
-    throw error
+  if (!res.ok) {
+    const errorText = await res.text()
+    console.error(`API error (${res.status}):`, errorText)
+    throw new Error(`API request failed: ${res.status}`)
   }
+
+  // Only parse JSON if response has content
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
 }
