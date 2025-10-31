@@ -11,7 +11,7 @@ export default function CustomerVehiclesPage() {
 
   return (
     <div className="p-4">
-      <VehiclesList vehicles={vehicles} />
+      <VehiclesList />
     </div>
   );
 }
