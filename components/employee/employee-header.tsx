@@ -14,14 +14,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Bell, Search, MessageCircle, Settings, User } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useUnreadCount } from '@/hooks/use-unread-count'
 
 export function EmployeeHeader() {
+  const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
     const email = localStorage.getItem('userEmail') || ''
     setUserEmail(email)
   }, [])
+
+  const { count: unreadCount } = useUnreadCount(30000)
 
   const getInitials = (email: string) => {
     return email.split('@')[0].slice(0, 2).toUpperCase()
@@ -53,11 +58,18 @@ export function EmployeeHeader() {
           </Button>
 
           {/* Messages */}
-          <Button variant="ghost" size="sm" className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="relative"
+            onClick={() => router.push('/employee/messages')}
+          >
             <MessageCircle className="h-4 w-4" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground">
-              5
-            </Badge>
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
           </Button>
 
           {/* User Menu */}

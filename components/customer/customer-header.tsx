@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Search, MessageCircle, Settings, User } from 'lucide-react'
 import { LiveNotifications } from '@/components/real-time/live-notifications'
+import { useUnreadCount } from '@/hooks/use-unread-count'
 import { me } from '@/services/auth'
 import { useRouter } from 'next/navigation'
 
@@ -22,6 +23,7 @@ export function CustomerHeader() {
   const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
   const [userName, setUserName] = useState('')
+  const { count: unreadCount } = useUnreadCount(30000)
 
   useEffect(() => {
     let mounted = true
@@ -68,11 +70,13 @@ export function CustomerHeader() {
           <LiveNotifications />
 
           {/* Messages */}
-          <Button variant="ghost" size="sm" className="relative">
+          <Button variant="ghost" size="sm" className="relative" onClick={() => router.push('/customer/messages')}>
             <MessageCircle className="h-4 w-4" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground">
-              2
-            </Badge>
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
           </Button>
 
           {/* User Menu */}
