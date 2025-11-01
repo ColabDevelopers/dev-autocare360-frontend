@@ -1,20 +1,38 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
+"use client";
+
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Users,
   Car,
+  Truck,
   Calendar,
   DollarSign,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   BarChart3,
-} from 'lucide-react'
+} from "lucide-react";
+import { useServices } from "@/hooks/useServices";
+import { useVehicles } from "@/hooks/useVehicles";
 
 export default function AdminDashboard() {
+  const { stats, loading: servicesLoading, error: servicesError } = useServices();
+  const { vehicles, loading: vehiclesLoading, error: vehiclesError } = useVehicles();
+
+  const totalVehicles = vehicles?.length ?? 0;
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
         <p className="text-muted-foreground">System overview and key metrics</p>
@@ -22,6 +40,7 @@ export default function AdminDashboard() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Users */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -35,19 +54,57 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Active Services */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Services</CardTitle>
             <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-blue-500">+5</span> new today
-            </p>
+            {servicesLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : servicesError ? (
+              <div className="text-sm text-red-500">Error</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.activeServices ?? 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats?.activeServices ? (
+                    <span className="text-blue-500">
+                      {stats.activeServices} active now
+                    </span>
+                  ) : (
+                    "No active services"
+                  )}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
+        {/* Total Vehicles */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {vehiclesLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : vehiclesError ? (
+              <div className="text-sm text-red-500">Error</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totalVehicles}</div>
+                <p className="text-xs text-muted-foreground">
+                  Registered vehicles in the system
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Monthly Revenue (Hardcoded) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
@@ -60,19 +117,9 @@ export default function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">Requires immediate attention</p>
-          </CardContent>
-        </Card>
       </div>
 
+      {/* Recent Activities + System Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activities */}
         <Card>
@@ -205,5 +252,5 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
