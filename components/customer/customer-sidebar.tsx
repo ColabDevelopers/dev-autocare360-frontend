@@ -19,6 +19,7 @@ import {
   Bell,
   Bot,
 } from 'lucide-react'
+import { useUnreadCount } from '@/hooks/use-unread-count'
 
 const navigationItems = [
   { icon: BarChart3, label: 'Dashboard', href: '/customer/dashboard' },
@@ -28,13 +29,14 @@ const navigationItems = [
   { icon: Wrench, label: 'Projects', href: '/customer/projects' },
   { icon: Settings, label: 'Progress', href: '/customer/progress' },
   { icon: Bot, label: 'AI Assistant', href: '/customer/chat' },
-  { icon: MessageCircle, label: 'Messages', href: '/customer/messages', badge: '2' },
+  { icon: MessageCircle, label: 'Messages', href: '/customer/messages' },
 ]
 
 export function CustomerSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
+  const { count: unreadCount } = useUnreadCount(30000)
 
   const handleLogout = () => {
     clearToken()
@@ -92,12 +94,12 @@ export function CustomerSidebar() {
                 {!isCollapsed && (
                   <>
                     <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge && (
+                    {item.href === '/customer/messages' && unreadCount > 0 && (
                       <Badge
                         variant="secondary"
                         className="ml-auto bg-primary text-primary-foreground"
                       >
-                        {item.badge}
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </Badge>
                     )}
                   </>
