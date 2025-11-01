@@ -18,10 +18,13 @@ function getAuthHeader(): Record<string, string> {
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_CONFIG.BASE_URL}${endpoint}`
 
-  const headers = new Headers(options.headers as HeadersInit)
+ const headers = new Headers(options.headers as HeadersInit)
   headers.set('Content-Type', 'application/json')
   const auth = getAuthHeader()
   Object.entries(auth).forEach(([k, v]) => headers.set(k, v))
+
+  // DEBUG: Log if token is being sent
+  console.log('🔐 API Call:', endpoint, 'Has Token?', !!auth.Authorization, 'Token:', auth.Authorization?.substring(0, 50) + '...')
 
   const defaultOptions: RequestInit = {
     headers,
