@@ -92,6 +92,14 @@ export default function VehiclesList() {
     setForm({ make: "", model: "", year: "", plateNumber: "", color: "" });
   };
 
+  const fieldLabels: Record<string, string> = {
+  make: "Vehicle Brand / Manufacturer",
+  model: "Model",
+  year: "Year",
+  plateNumber: "License Plate Number",
+  color: "Color",
+};
+
   return (
     <div className="p-4 text-white">
       <Toaster position="top-right" reverseOrder={false} />
@@ -155,12 +163,12 @@ export default function VehiclesList() {
             <div className="space-y-4">
               {["make", "model", "year", "plateNumber", "color"].map((field) => (
                 <div key={field}>
-                  <label className="block text-sm font-medium text-gray-300 mb-1 capitalize">
-                    {field === "plateNumber" ? "License Plate Number" : field}
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    {fieldLabels[field]}
                   </label>
                   <input
                     type={field === "year" ? "number" : "text"}
-                    placeholder={`Enter ${field}`}
+                    placeholder={`Enter ${fieldLabels[field]}`}
                     value={(form as any)[field]}
                     onChange={(e) => setForm({ ...form, [field]: e.target.value })}
                     className="w-full p-2 rounded-md bg-[#333] text-white outline-none focus:ring-2 focus:ring-blue-500"
