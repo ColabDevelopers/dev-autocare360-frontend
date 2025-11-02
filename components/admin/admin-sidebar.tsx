@@ -18,6 +18,7 @@ import {
   UserCheck,
   FileText,
   LogOut,
+  Activity,
 } from 'lucide-react'
 import { clearToken } from '@/lib/auth'
 
@@ -25,6 +26,7 @@ const adminNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'User Management', icon: Users },
   { href: '/admin/employees', label: 'Employee Management', icon: UserCheck },
+  { href: '/admin/workload', label: 'Workload Monitoring', icon: Activity }, // ⭐ NEW
   { href: '/admin/services', label: 'Service Management', icon: Car },
   { href: '/admin/appointments', label: 'Appointments', icon: Calendar },
   { href: '/admin/projects', label: 'Projects', icon: ClipboardList },
