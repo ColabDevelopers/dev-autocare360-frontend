@@ -16,6 +16,22 @@ export async function listEmployees(): Promise<EmployeeResponse[]> {
   return Array.isArray(data) ? data : []
 }
 
+// Public endpoint for listing employees/technicians (accessible by all authenticated users)
+export async function listTechnicians(): Promise<EmployeeResponse[]> {
+  try {
+    console.log('Calling /api/employees endpoint...')
+    const data = await apiCall('/api/employees', { method: 'GET' })
+    console.log('Raw response from /api/employees:', data)
+    console.log('Is array?', Array.isArray(data))
+    const result = Array.isArray(data) ? data : []
+    console.log('Returning:', result)
+    return result
+  } catch (error) {
+    console.error('Failed to fetch employees from /api/employees:', error)
+    return []
+  }
+}
+
 export async function createEmployee(payload: {
   name: string
   email: string
