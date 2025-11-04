@@ -32,12 +32,19 @@ export function useMessaging(userId: number): UseMessagingReturn {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
     const token = localStorage.getItem('accessToken')
     
+    if (!token) {
+      console.warn('⚠️ No access token found - cannot connect to WebSocket')
+      return
+    }
+    
+    console.log('🔌 Attempting WebSocket connection to:', `${apiUrl}/ws`)
+    
     const socket = new SockJS(`${apiUrl}/ws`)
     const client = new Client({
       webSocketFactory: () => socket as any,
       connectHeaders: {
         // Send JWT token in CONNECT frame headers for authentication
-        Authorization: token ? `Bearer ${token}` : '',
+        Authorization: `Bearer ${token}`,
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
@@ -46,7 +53,7 @@ export function useMessaging(userId: number): UseMessagingReturn {
         console.log('STOMP Debug:', str)
       },
       onConnect: () => {
-        console.log('WebSocket Connected with authentication')
+        console.log('✅ WebSocket Connected with authentication')
         setConnected(true)
 
         // Auto-subscribe on successful connect (idempotent)
@@ -78,7 +85,7 @@ export function useMessaging(userId: number): UseMessagingReturn {
         }
       },
       onDisconnect: () => {
-        console.log('WebSocket Disconnected')
+        console.log('❌ WebSocket Disconnected')
         setConnected(false)
         // Clean up subs on disconnect
         if (subscriptionRef.current) {
@@ -91,8 +98,8 @@ export function useMessaging(userId: number): UseMessagingReturn {
         }
       },
       onStompError: (frame: IFrame) => {
-        console.error('STOMP Error:', frame.headers['message'])
-        console.error('Details:', frame.body)
+        console.error('❌ STOMP Error:', frame.headers['message'])
+        console.error('Error Details:', frame.body)
       },
     })
 

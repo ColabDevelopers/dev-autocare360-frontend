@@ -10,70 +10,82 @@ export interface WebSocketMessage {
 }
 
 export function useWebSocket() {
-  const [isConnected, setIsConnected] = useState(true) // Always connected in mock mode
+  const [isConnected, setIsConnected] = useState(false)
   const [messages, setMessages] = useState<WebSocketMessage[]>([])
-  const mockIntervalRef = useRef<NodeJS.Timeout>()
+  const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
-    console.log('[v0] Mock WebSocket initializing - NO real WebSocket connection')
-    setIsConnected(true)
+    const connect = () => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+      const wsUrl = apiUrl.replace(/^http/, 'ws') + '/ws'
+      
+      console.log('[WebSocket] Connecting to:', wsUrl)
 
-    const initialMessages: WebSocketMessage[] = [
-      {
-        type: 'notification',
-        data: { message: 'Mock notification system active - no WebSocket server needed' },
-        timestamp: new Date().toISOString(),
-        userId: 'user-123',
-      },
-    ]
+      try {
+        const ws = new WebSocket(wsUrl)
+        wsRef.current = ws
 
-    setMessages(initialMessages)
+        ws.onopen = () => {
+          console.log('[WebSocket] Connected successfully')
+          setIsConnected(true)
+        }
 
-    mockIntervalRef.current = setInterval(() => {
-      const mockMessages: WebSocketMessage[] = [
-        {
-          type: 'service_update',
-          data: { serviceId: 'SRV-001', status: 'In Progress' },
-          timestamp: new Date().toISOString(),
-          userId: 'user-123',
-        },
-        {
-          type: 'appointment_update',
-          data: { appointmentId: 'APT-001', date: '2024-01-15', status: 'Confirmed' },
-          timestamp: new Date().toISOString(),
-          userId: 'user-123',
-        },
-        {
-          type: 'notification',
-          data: { message: 'Your vehicle service is ready for pickup' },
-          timestamp: new Date().toISOString(),
-          userId: 'user-123',
-        },
-      ]
+        ws.onmessage = (event) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data)
+            console.log('[WebSocket] Message received:', message)
+            setMessages(prev => [...prev, message])
+          } catch (error) {
+            console.error('[WebSocket] Failed to parse message:', error)
+          }
+        }
 
-      // Send a mock message every 2 minutes with lower probability
-      if (Math.random() > 0.9) {
-        const randomMessage = mockMessages[Math.floor(Math.random() * mockMessages.length)]
-        console.log('[v0] Mock WebSocket sending message:', randomMessage)
-        setMessages(prev => [...prev, randomMessage])
+        ws.onerror = (error) => {
+          console.error('[WebSocket] Error:', error)
+        }
+
+        ws.onclose = () => {
+          console.log('[WebSocket] Disconnected')
+          setIsConnected(false)
+          
+          // Attempt to reconnect after 5 seconds
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('[WebSocket] Attempting to reconnect...')
+            connect()
+          }, 5000)
+        }
+      } catch (error) {
+        console.error('[WebSocket] Connection failed:', error)
+        // Retry connection
+        reconnectTimeoutRef.current = setTimeout(connect, 5000)
       }
-    }, 120000) // 2 minutes
+    }
+
+    connect()
 
     return () => {
-      console.log('[v0] Mock WebSocket cleanup')
-      if (mockIntervalRef.current) {
-        clearInterval(mockIntervalRef.current)
+      console.log('[WebSocket] Cleanup')
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+      if (wsRef.current) {
+        wsRef.current.close()
       }
     }
   }, [])
 
   const sendMessage = (message: Omit<WebSocketMessage, 'timestamp'>) => {
-    const fullMessage: WebSocketMessage = {
-      ...message,
-      timestamp: new Date().toISOString(),
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const fullMessage: WebSocketMessage = {
+        ...message,
+        timestamp: new Date().toISOString(),
+      }
+      wsRef.current.send(JSON.stringify(fullMessage))
+      console.log('[WebSocket] Message sent:', fullMessage)
+    } else {
+      console.warn('[WebSocket] Cannot send message - not connected')
     }
-    console.log('[v0] Mock WebSocket message sent:', fullMessage)
-    setMessages(prev => [...prev, fullMessage])
   }
 
   return {
