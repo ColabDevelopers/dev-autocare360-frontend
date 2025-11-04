@@ -1,10 +1,16 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Separator } from '@/components/ui/separator'
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import {
   Car,
   CalendarIcon,
@@ -14,145 +20,96 @@ import {
   AlertCircle,
   TrendingUp,
   Plus,
-} from 'lucide-react'
-import { LiveProgress } from '@/components/real-time/live-progress'
+} from "lucide-react";
+import { LiveProgress } from "@/components/real-time/live-progress";
+import { useVehicles } from "@/hooks/useVehicles";
+import { useServices } from "@/hooks/useServices";
 
 // Mock data
-const mockServices = [
-  {
-    id: 1,
-    type: 'Oil Change',
-    vehicle: 'Toyota Camry 2020',
-    progress: 75,
-    status: 'In Progress',
-    estimatedCompletion: '2024-01-15',
-    technician: 'Mike Johnson',
-  },
-  {
-    id: 2,
-    type: 'Brake Inspection',
-    vehicle: 'Honda Civic 2019',
-    progress: 100,
-    status: 'Completed',
-    estimatedCompletion: '2024-01-10',
-    technician: 'Sarah Wilson',
-  },
-  {
-    id: 3,
-    type: 'Custom Exhaust System',
-    vehicle: 'Toyota Camry 2020',
-    progress: 45,
-    status: 'In Progress',
-    estimatedCompletion: '2024-01-20',
-    technician: 'Alex Rodriguez',
-  },
-]
-
 const mockUpcomingAppointments = [
   {
     id: 1,
-    service: 'Tire Rotation',
-    date: '2024-01-18',
-    time: '10:00 AM',
-    vehicle: 'Toyota Camry 2020',
+    service: "Tire Rotation",
+    date: "2024-01-18",
+    time: "10:00 AM",
+    vehicle: "Toyota Camry 2020",
   },
   {
     id: 2,
-    service: 'AC Service',
-    date: '2024-01-22',
-    time: '2:00 PM',
-    vehicle: 'Honda Civic 2019',
+    service: "AC Service",
+    date: "2024-01-22",
+    time: "2:00 PM",
+    vehicle: "Honda Civic 2019",
   },
-]
+];
 
 export default function CustomerDashboard() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [notifications, setNotifications] = useState([
     {
       id: 1,
-      message: 'Oil change completed for Toyota Camry',
-      time: '2 hours ago',
-      type: 'success',
+      message: "Oil change completed for Toyota Camry",
+      time: "2 hours ago",
+      type: "success",
     },
-    { id: 2, message: 'Brake inspection scheduled for tomorrow', time: '1 day ago', type: 'info' },
+    {
+      id: 2,
+      message: "Brake inspection scheduled for tomorrow",
+      time: "1 day ago",
+      type: "info",
+    },
     {
       id: 3,
-      message: 'Custom exhaust project update available',
-      time: '3 hours ago',
-      type: 'update',
+      message: "Custom exhaust project update available",
+      time: "3 hours ago",
+      type: "update",
     },
-  ])
+  ]);
 
-  // Simulate real-time updates
+  // ✅ Fetch live data using same logic as AdminDashboard
+  const { stats, services, loading: servicesLoading, error: servicesError } = useServices();
+  const { vehicles, loading: vehiclesLoading, error: vehiclesError } = useVehicles();
+
+  const totalVehicles = vehicles?.length ?? 0;
+  const activeServices = stats?.activeServices ?? 0;
+
+  // Simulated real-time notifications
   useEffect(() => {
     const interval = setInterval(() => {
-      setNotifications(prev => [
+      setNotifications((prev) => [
         {
           id: Date.now(),
-          message: 'Service progress updated',
-          time: 'Just now',
-          type: 'update',
+          message: "Service progress updated",
+          time: "Just now",
+          type: "update",
         },
         ...prev.slice(0, 4),
-      ])
-    }, 30000) // Update every 30 seconds
-
-    return () => clearInterval(interval)
-  }, [])
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-green-500'
-      case 'In Progress':
-        return 'bg-blue-500'
-      case 'Pending':
-        return 'bg-yellow-500'
-      default:
-        return 'bg-gray-500'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'In Progress':
-        return <Clock className="h-4 w-4 text-blue-500" />
-      case 'Pending':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />
-    }
-  }
+      ]);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground text-balance">Welcome back!</h1>
-          <p className="text-muted-foreground text-balance">
+          <h1 className="text-3xl font-bold text-foreground">Welcome back!</h1>
+          <p className="text-muted-foreground">
             Here's what's happening with your vehicles today.
           </p>
         </div>
         <div className="flex space-x-2">
           <Button
             className="bg-primary hover:bg-primary/90"
-            onClick={() => {
-              console.log('[v0] Book Service clicked from dashboard')
-              window.location.href = '/customer/appointments'
-            }}
+            onClick={() => (window.location.href = "/customer/appointments")}
           >
             <Plus className="mr-2 h-4 w-4" />
             Book Service
           </Button>
           <Button
             variant="outline"
-            onClick={() => {
-              console.log('[v0] Request Project clicked from dashboard')
-              window.location.href = '/customer/projects'
-            }}
+            onClick={() => (window.location.href = "/customer/projects")}
           >
             <Wrench className="mr-2 h-4 w-4" />
             Request Project
@@ -160,21 +117,35 @@ export default function CustomerDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* ✅ Stats Section - uses same logic as AdminDashboard */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* Active Services */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Active Services</CardTitle>
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">+1 from last month</p>
+            {servicesLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : servicesError ? (
+              <div className="text-sm text-red-500">Error loading</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{activeServices}</div>
+                <p className="text-xs text-muted-foreground">
+                  {activeServices > 0
+                    ? `${activeServices} currently active`
+                    : "No active services"}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* Completed (still hardcoded) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -184,19 +155,29 @@ export default function CustomerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* ✅ Vehicles */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Vehicles</CardTitle>
             <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">Registered</p>
+            {vehiclesLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : vehiclesError ? (
+              <div className="text-sm text-red-500">Error loading</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totalVehicles}</div>
+                <p className="text-xs text-muted-foreground">Registered</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        {/* Next Service (hardcoded placeholder) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Next Service</CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -208,9 +189,9 @@ export default function CustomerDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Current Services */}
+        {/* Current Services & Projects */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-border/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Wrench className="h-5 w-5" />
@@ -226,7 +207,7 @@ export default function CustomerDashboard() {
           </Card>
 
           {/* Upcoming Appointments */}
-          <Card className="border-border/50">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <CalendarIcon className="h-5 w-5" />
@@ -235,10 +216,10 @@ export default function CustomerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockUpcomingAppointments.map(appointment => (
+                {mockUpcomingAppointments.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex items-center justify-between p-3 border border-border rounded-lg"
+                    className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
                       <div className="bg-primary/10 p-2 rounded-lg">
@@ -246,12 +227,16 @@ export default function CustomerDashboard() {
                       </div>
                       <div>
                         <h4 className="font-medium">{appointment.service}</h4>
-                        <p className="text-sm text-muted-foreground">{appointment.vehicle}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {appointment.vehicle}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">{appointment.date}</p>
-                      <p className="text-sm text-muted-foreground">{appointment.time}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {appointment.time}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -263,7 +248,7 @@ export default function CustomerDashboard() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Calendar */}
-          <Card className="border-border/50">
+          <Card>
             <CardHeader>
               <CardTitle>Calendar</CardTitle>
             </CardHeader>
@@ -272,13 +257,13 @@ export default function CustomerDashboard() {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="rounded-md border border-border"
+                className="rounded-md border"
               />
             </CardContent>
           </Card>
 
-          {/* Recent Notifications */}
-          <Card className="border-border/50">
+          {/* Notifications */}
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <TrendingUp className="h-5 w-5" />
@@ -292,19 +277,23 @@ export default function CustomerDashboard() {
                     <div className="flex items-start space-x-3">
                       <div
                         className={`w-2 h-2 rounded-full mt-2 ${
-                          notification.type === 'success'
-                            ? 'bg-green-500'
-                            : notification.type === 'info'
-                              ? 'bg-blue-500'
-                              : 'bg-yellow-500'
+                          notification.type === "success"
+                            ? "bg-green-500"
+                            : notification.type === "info"
+                            ? "bg-blue-500"
+                            : "bg-yellow-500"
                         }`}
                       />
                       <div className="flex-1 space-y-1">
                         <p className="text-sm">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {notification.time}
+                        </p>
                       </div>
                     </div>
-                    {index < notifications.length - 1 && <Separator className="my-3" />}
+                    {index < notifications.length - 1 && (
+                      <Separator className="my-3" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -313,5 +302,5 @@ export default function CustomerDashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }
