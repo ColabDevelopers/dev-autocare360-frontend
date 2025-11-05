@@ -84,6 +84,10 @@ export default function TimeLogsPage() {
   const [totalItems, setTotalItems] = useState(0)
   const [pageSize] = useState(10)
   const [isPaginationLoading, setIsPaginationLoading] = useState(false)
+  const [clickedButton, setClickedButton] = useState<number | null>(null)
+  
+  // Cache for storing fetched pages
+  const pageCache = useRef<Map<number, TimeLogResponse[]>>(new Map())
 
   const [newTimeLog, setNewTimeLog] = useState({
     appointmentId: '',
@@ -192,11 +196,29 @@ export default function TimeLogsPage() {
     }
   }
 
-  const fetchTimeLogs = async (page: number = currentPage) => {
+  const fetchTimeLogs = async (page: number = currentPage, useCache: boolean = true) => {
     try {
+      // Check cache first
+      if (useCache && pageCache.current.has(page)) {
+        console.log(`📦 Loading page ${page} from cache`)
+        setTimeLogs(pageCache.current.get(page)!)
+        setCurrentPage(page)
+        setClickedButton(null)
+        return
+      }
+
       setIsPaginationLoading(true)
+      setClickedButton(page)
+      
       const response = await getTimeLogs(undefined, undefined, page, pageSize)
       console.log('📋 Fetched Time Logs:', response)
+      
+      // Store in cache
+      pageCache.current.set(page, response.content)
+      
+      // Prefetch adjacent pages
+      prefetchAdjacentPages(page)
+      
       setTimeLogs(response.content)
       setCurrentPage(response.currentPage)
       setTotalPages(response.totalPages)
@@ -205,7 +227,30 @@ export default function TimeLogsPage() {
       console.error('Error fetching time logs:', error)
     } finally {
       setIsPaginationLoading(false)
+      setClickedButton(null)
     }
+  }
+
+  const prefetchAdjacentPages = async (currentPage: number) => {
+    // Prefetch next 2 pages in background
+    const pagesToPrefetch = [currentPage + 1, currentPage + 2].filter(
+      p => p < totalPages && !pageCache.current.has(p)
+    )
+
+    for (const page of pagesToPrefetch) {
+      try {
+        const response = await getTimeLogs(undefined, undefined, page, pageSize)
+        pageCache.current.set(page, response.content)
+        console.log(`✨ Prefetched page ${page}`)
+      } catch (error) {
+        console.error(`Failed to prefetch page ${page}:`, error)
+      }
+    }
+  }
+
+  const clearCache = () => {
+    pageCache.current.clear()
+    console.log('🗑️ Cache cleared')
   }
 
   const fetchActiveProjects = async () => {
@@ -271,8 +316,9 @@ export default function TimeLogsPage() {
       })
       setIsAddDialogOpen(false)
 
-      // Reload data - go back to first page when adding new
-      await Promise.all([fetchTimeLogs(0), fetchSummary()])
+      // Clear cache and reload data - go back to first page when adding new
+      clearCache()
+      await Promise.all([fetchTimeLogs(0, false), fetchSummary()])
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -307,8 +353,9 @@ export default function TimeLogsPage() {
       setIsEditDialogOpen(false)
       setEditingLog(null)
 
-      // Reload data - stay on current page
-      await Promise.all([fetchTimeLogs(currentPage), fetchSummary()])
+      // Clear cache and reload data - stay on current page
+      clearCache()
+      await Promise.all([fetchTimeLogs(currentPage, false), fetchSummary()])
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -330,9 +377,10 @@ export default function TimeLogsPage() {
         description: 'Time log deleted successfully',
       })
 
-      // Reload data - stay on current page or go back one if last item on page
+      // Clear cache and reload data - stay on current page or go back one if last item on page
+      clearCache()
       const newPage = timeLogs.length === 1 && currentPage > 0 ? currentPage - 1 : currentPage
-      await Promise.all([fetchTimeLogs(newPage), fetchSummary()])
+      await Promise.all([fetchTimeLogs(newPage, false), fetchSummary()])
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -769,8 +817,11 @@ export default function TimeLogsPage() {
                           size="sm"
                           onClick={() => fetchTimeLogs(currentPage - 1)}
                           disabled={currentPage === 0 || isPaginationLoading}
+                          className={`transition-all ${
+                            clickedButton === currentPage - 1 ? 'scale-95 bg-primary/10' : ''
+                          }`}
                         >
-                          {isPaginationLoading ? (
+                          {isPaginationLoading && clickedButton === currentPage - 1 ? (
                             <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                           ) : (
                             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -798,9 +849,15 @@ export default function TimeLogsPage() {
                                   size="sm"
                                   onClick={() => fetchTimeLogs(0)}
                                   disabled={isPaginationLoading}
-                                  className="min-w-10"
+                                  className={`min-w-10 transition-all ${
+                                    clickedButton === 0 ? 'scale-95 bg-primary/10' : ''
+                                  }`}
                                 >
-                                  1
+                                  {clickedButton === 0 && isPaginationLoading ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    '1'
+                                  )}
                                 </Button>
                               )
                               if (startPage > 1) {
@@ -821,9 +878,15 @@ export default function TimeLogsPage() {
                                   size="sm"
                                   onClick={() => fetchTimeLogs(i)}
                                   disabled={isPaginationLoading}
-                                  className="min-w-10"
+                                  className={`min-w-10 transition-all ${
+                                    clickedButton === i ? 'scale-95 bg-primary/10' : ''
+                                  } ${i === currentPage ? 'ring-2 ring-primary ring-offset-1' : ''}`}
                                 >
-                                  {i + 1}
+                                  {clickedButton === i && isPaginationLoading ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    i + 1
+                                  )}
                                 </Button>
                               )
                             }
@@ -844,9 +907,15 @@ export default function TimeLogsPage() {
                                   size="sm"
                                   onClick={() => fetchTimeLogs(totalPages - 1)}
                                   disabled={isPaginationLoading}
-                                  className="min-w-10"
+                                  className={`min-w-10 transition-all ${
+                                    clickedButton === totalPages - 1 ? 'scale-95 bg-primary/10' : ''
+                                  }`}
                                 >
-                                  {totalPages}
+                                  {clickedButton === totalPages - 1 && isPaginationLoading ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    totalPages
+                                  )}
                                 </Button>
                               )
                             }
@@ -859,9 +928,16 @@ export default function TimeLogsPage() {
                           size="sm"
                           onClick={() => fetchTimeLogs(currentPage + 1)}
                           disabled={currentPage >= totalPages - 1 || isPaginationLoading}
+                          className={`transition-all ${
+                            clickedButton === currentPage + 1 ? 'scale-95 bg-primary/10' : ''
+                          }`}
                         >
                           Next
-                          <ChevronRight className="h-4 w-4 ml-1" />
+                          {isPaginationLoading && clickedButton === currentPage + 1 ? (
+                            <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                          )}
                         </Button>
                       </div>
                     </div>
