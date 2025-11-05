@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Clock, CheckCircle, AlertCircle, Calendar, User, Wrench, FileText, XCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useServiceProgress } from '@/hooks/use-service-progress'
 
 interface CustomerService {
   id: number
@@ -225,6 +226,9 @@ export default function CustomerProgress() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('all')
+  
+  // Real-time service progress updates
+  const { latestUpdate, isConnected } = useServiceProgress()
 
   const fetchServices = async () => {
     // Check if we're on the client side
@@ -273,6 +277,54 @@ export default function CustomerProgress() {
       fetchServices()
     }
   }, [])
+
+  // Handle real-time service progress updates
+  useEffect(() => {
+    if (latestUpdate && data) {
+      console.log('[CustomerProgress] ✅ Processing real-time update:', latestUpdate)
+      console.log('[CustomerProgress] Current data:', data)
+      
+      setData(prevData => {
+        if (!prevData) {
+          console.log('[CustomerProgress] ⚠️ No previous data')
+          return prevData
+        }
+
+        // Update service in all arrays
+        const updateService = (service: CustomerService) => {
+          if (service.id === latestUpdate.serviceId) {
+            console.log('[CustomerProgress] 🔄 Updating service:', service.id, 'Progress:', latestUpdate.progress)
+            return {
+              ...service,
+              status: latestUpdate.status,
+              progress: latestUpdate.progress,
+              updatedAt: new Date().toISOString(),
+            }
+          }
+          return service
+        }
+
+        const updatedAllServices = prevData.allServices.map(updateService)
+        const updatedCategorized = {
+          SCHEDULED: prevData.categorized.SCHEDULED.map(updateService),
+          IN_PROGRESS: prevData.categorized.IN_PROGRESS.map(updateService),
+          COMPLETED: prevData.categorized.COMPLETED.map(updateService),
+          CANCELLED: prevData.categorized.CANCELLED.map(updateService),
+        }
+
+        console.log('[CustomerProgress] ✨ State updated successfully')
+
+        return {
+          ...prevData,
+          allServices: updatedAllServices,
+          categorized: updatedCategorized,
+        }
+      })
+    } else {
+      if (!latestUpdate) console.log('[CustomerProgress] No latest update yet')
+      if (!data) console.log('[CustomerProgress] No data loaded yet')
+    }
+  }, [latestUpdate, data])
 
   if (loading) {
     return (
