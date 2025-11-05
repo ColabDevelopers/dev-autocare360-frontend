@@ -55,12 +55,16 @@ export default function TimeLogsPage() {
   const [activeProjects, setActiveProjects] = useState<ActiveProject[]>([])
   const [summary, setSummary] = useState<TimeLogSummary | null>(null)
   const [activeTimerData, setActiveTimerData] = useState<TimerResponse | null>(null)
+  const [currentElapsedSeconds, setCurrentElapsedSeconds] = useState<number>(0)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingLog, setEditingLog] = useState<TimeLogResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [startingTimerForProject, setStartingTimerForProject] = useState<number | null>(null)
+  const [isStoppingTimer, setIsStoppingTimer] = useState(false)
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const displayTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const [newTimeLog, setNewTimeLog] = useState({
     appointmentId: '',
@@ -92,24 +96,61 @@ export default function TimeLogsPage() {
         console.log('Token preview:', token.substring(0, 30) + '...')
       }
     }
-    
+
     loadAllData()
   }, [])
 
-  // Setup timer interval to check active timer status
+  // Setup timer interval to check active timer status from server
   useEffect(() => {
-    timerIntervalRef.current = setInterval(() => {
-      if (activeTimerData?.isActive) {
+    if (activeTimerData?.isActive) {
+      // Sync with server every 30 seconds to stay accurate
+      timerIntervalRef.current = setInterval(() => {
         fetchActiveTimer()
+      }, 30000)
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
       }
-    }, 5000) // Check every 5 seconds
+    }
 
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
       }
     }
   }, [activeTimerData?.isActive])
+
+  // Setup smooth display timer that updates every second
+  useEffect(() => {
+    if (
+      activeTimerData?.isActive &&
+      activeTimerData.elapsedSeconds !== undefined &&
+      activeTimerData.elapsedSeconds !== null
+    ) {
+      // Initialize the current elapsed time
+      setCurrentElapsedSeconds(activeTimerData.elapsedSeconds)
+
+      // Update display every second for smooth UI
+      displayTimerRef.current = setInterval(() => {
+        setCurrentElapsedSeconds(prev => prev + 1)
+      }, 1000)
+    } else {
+      setCurrentElapsedSeconds(0)
+      if (displayTimerRef.current) {
+        clearInterval(displayTimerRef.current)
+        displayTimerRef.current = null
+      }
+    }
+
+    return () => {
+      if (displayTimerRef.current) {
+        clearInterval(displayTimerRef.current)
+        displayTimerRef.current = null
+      }
+    }
+  }, [activeTimerData?.isActive, activeTimerData?.elapsedSeconds])
 
   const loadAllData = async () => {
     setIsLoading(true)
@@ -291,7 +332,7 @@ export default function TimeLogsPage() {
   }
 
   const handleStartTimer = async (appointmentId: number) => {
-    setIsSubmitting(true)
+    setStartingTimerForProject(appointmentId)
     try {
       await startTimer({ appointmentId })
       toast({
@@ -308,7 +349,7 @@ export default function TimeLogsPage() {
         variant: 'destructive',
       })
     } finally {
-      setIsSubmitting(false)
+      setStartingTimerForProject(null)
     }
   }
 
@@ -322,7 +363,7 @@ export default function TimeLogsPage() {
       return
     }
 
-    setIsSubmitting(true)
+    setIsStoppingTimer(true)
     try {
       await stopTimer({
         timerId: activeTimerData.timerId,
@@ -346,7 +387,7 @@ export default function TimeLogsPage() {
         variant: 'destructive',
       })
     } finally {
-      setIsSubmitting(false)
+      setIsStoppingTimer(false)
     }
   }
 
@@ -490,9 +531,7 @@ export default function TimeLogsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-mono">
-              {activeTimerData?.isActive && activeTimerData.elapsedSeconds
-                ? formatTime(activeTimerData.elapsedSeconds)
-                : '00:00:00'}
+              {activeTimerData?.isActive ? formatTime(currentElapsedSeconds) : '00:00:00'}
             </div>
             <p className="text-xs text-muted-foreground">
               {activeTimerData?.isActive ? 'Running' : 'No active timer'}
@@ -534,7 +573,7 @@ export default function TimeLogsPage() {
                 <div className="bg-primary/10 p-6 rounded-lg text-center">
                   <h3 className="text-lg font-medium mb-2">{activeTimerData.projectName}</h3>
                   <div className="text-4xl font-mono font-bold text-primary mb-4">
-                    {formatTime(activeTimerData.elapsedSeconds || 0)}
+                    {formatTime(currentElapsedSeconds)}
                   </div>
                   <Dialog open={stopTimerDialogOpen} onOpenChange={setStopTimerDialogOpen}>
                     <DialogTrigger asChild>
@@ -562,16 +601,20 @@ export default function TimeLogsPage() {
                           />
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Elapsed Time: {formatTime(activeTimerData.elapsedSeconds || 0)}(
-                          {activeTimerData.elapsedHours?.toFixed(2) || '0.00'} hours)
+                          Elapsed Time: {formatTime(currentElapsedSeconds)} (
+                          {(currentElapsedSeconds / 3600).toFixed(2)} hours)
                         </div>
                       </div>
                       <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setStopTimerDialogOpen(false)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setStopTimerDialogOpen(false)}
+                          disabled={isStoppingTimer}
+                        >
                           Cancel
                         </Button>
-                        <Button onClick={handleStopTimer} disabled={isSubmitting}>
-                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button onClick={handleStopTimer} disabled={isStoppingTimer}>
+                          {isStoppingTimer && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Stop & Save
                         </Button>
                       </div>
@@ -597,12 +640,12 @@ export default function TimeLogsPage() {
                         </div>
                         <Button
                           onClick={() => handleStartTimer(project.id)}
-                          disabled={activeTimerData?.isActive || isSubmitting}
+                          disabled={activeTimerData?.isActive || startingTimerForProject !== null}
                           variant={
                             activeTimerData?.appointmentId === project.id ? 'secondary' : 'outline'
                           }
                         >
-                          {isSubmitting ? (
+                          {startingTimerForProject === project.id ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
                             <Play className="mr-2 h-4 w-4" />

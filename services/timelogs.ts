@@ -36,6 +36,7 @@ export interface UpdateTimeLogRequest {
   status?: string
 }
 
+
 export interface TimeLogSummary {
   totalHoursToday: number
   totalHoursWeek: number
