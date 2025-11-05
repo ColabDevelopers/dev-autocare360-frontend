@@ -20,12 +20,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { messages, isConnected } = useWebSocket()
   const [notifications, setNotifications] = useState<WebSocketMessage[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [lastMarkAllReadTime, setLastMarkAllReadTime] = useState<number>(0)
 
   // Fetch unread notification count from backend
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem('accessToken')
       if (!token) return
+
+      // Don't fetch if user just marked all as read (within last 2 seconds)
+      const timeSinceMarkAllRead = Date.now() - lastMarkAllReadTime
+      if (timeSinceMarkAllRead < 2000) {
+        console.log('[NotificationProvider] ⏭️ Skipping fetch - just marked all as read')
+        return
+      }
 
       const response = await fetch('http://localhost:8080/api/notifications/unread/count', {
         headers: {
@@ -70,11 +78,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       console.log('[NotificationProvider] 🔔 New notification:', latestNotification)
 
-      // Increment unread count for new real-time notification
-      setUnreadCount(prev => prev + 1)
-      
-      // Note: Toast notifications are now shown in the customer progress page
-      // to avoid duplicate toasts
+      // Fetch the actual count from backend instead of incrementing locally
+      // This ensures we're always in sync with the database
+      fetchUnreadCount()
     }
 
     setNotifications(newNotifications)
@@ -113,10 +119,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     console.log('[NotificationProvider] Clearing all notifications')
     setNotifications([])
     setUnreadCount(0)
+    setLastMarkAllReadTime(Date.now())
   }
 
   const refreshCount = () => {
     console.log('[NotificationProvider] Refreshing notification count')
+    setLastMarkAllReadTime(Date.now())
     fetchUnreadCount()
   }
 

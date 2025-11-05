@@ -17,6 +17,7 @@ import { useState } from 'react'
 export function LiveNotifications() {
   const { notifications, unreadCount, markAsRead, clearAll, refreshCount } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
+  const [isMarking, setIsMarking] = useState(false)
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -46,10 +47,14 @@ export function LiveNotifications() {
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open)
     
-    if (open && unreadCount > 0) {
+    if (open && unreadCount > 0 && !isMarking) {
+      setIsMarking(true)
       try {
         const token = localStorage.getItem('accessToken')
-        if (!token) return
+        if (!token) {
+          setIsMarking(false)
+          return
+        }
 
         // Call backend API to mark all as read
         const response = await fetch('http://localhost:8080/api/notifications/read-all', {
@@ -62,11 +67,17 @@ export function LiveNotifications() {
 
         if (response.ok) {
           console.log('[LiveNotifications] ✅ All notifications marked as read')
-          // Refresh the count from backend
-          refreshCount()
+          // Wait a moment before refreshing to ensure backend has processed
+          setTimeout(() => {
+            refreshCount()
+            setIsMarking(false)
+          }, 500)
+        } else {
+          setIsMarking(false)
         }
       } catch (error) {
         console.error('[LiveNotifications] ❌ Error marking notifications as read:', error)
+        setIsMarking(false)
       }
     }
   }
