@@ -50,7 +50,9 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       let message = `HTTP error! status: ${response.status}`;
       try {
         const data = await response.json();
-        if (data?.error?.message) message = data.error.message;
+        if (data?.message) message = data.message;
+        else if (data?.error?.message) message = data.error.message;
+        else if (typeof data === 'string') message = data;
       } catch {}
       throw new Error(message);
     }
