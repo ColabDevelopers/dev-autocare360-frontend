@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Clock, CheckCircle, AlertCircle, Calendar, User, Wrench, FileText, XCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useServiceProgress } from '@/hooks/use-service-progress'
+import { toast } from '@/hooks/use-toast'
 
 interface CustomerService {
   id: number
@@ -94,6 +95,50 @@ const formatDateTime = (dateStr: string | null) => {
   } catch {
     return dateStr
   }
+}
+
+// Helper function to create toast message
+const createToastMessage = (
+  service: CustomerService,
+  update: { status: string; progress: number; vehicle?: string; service?: string },
+  hasStatusChange: boolean,
+  hasProgressChange: boolean
+): string => {
+  const serviceName = update.service || service.service
+  const vehicleName = update.vehicle || service.vehicle
+  
+  let message = `Your ${serviceName} service for ${vehicleName}`
+  
+  if (hasStatusChange) {
+    const status = update.status.toUpperCase()
+    switch (status) {
+      case 'IN_PROGRESS':
+        message += ' is now in progress'
+        break
+      case 'COMPLETED':
+        message += ' has been completed'
+        break
+      case 'CANCELLED':
+        message += ' has been cancelled'
+        break
+      case 'PENDING':
+      case 'SCHEDULED':
+        message += ' is scheduled'
+        break
+      default:
+        message += ` status updated to ${update.status}`
+    }
+    
+    if (update.progress !== undefined && update.progress > 0) {
+      message += ` (${update.progress}% complete)`
+    }
+  } else if (hasProgressChange) {
+    message += ` - Progress updated to ${update.progress}%`
+  }
+  
+  message += '.'
+  
+  return message
 }
 
 const ServiceCard = ({ service }: { service: CustomerService }) => (
@@ -300,10 +345,35 @@ export default function CustomerProgress() {
 
         const oldStatus = serviceToUpdate.status.toUpperCase()
         const newStatus = latestUpdate.status.toUpperCase()
+        const oldProgress = serviceToUpdate.progress
+        const newProgress = latestUpdate.progress
         
         console.log('[CustomerProgress] 🔄 Updating service:', serviceToUpdate.id)
         console.log('[CustomerProgress] Status change:', oldStatus, '→', newStatus)
-        console.log('[CustomerProgress] Progress:', serviceToUpdate.progress, '→', latestUpdate.progress)
+        console.log('[CustomerProgress] Progress:', oldProgress, '→', newProgress)
+
+        // Show toast notification for the update
+        const hasStatusChange = oldStatus !== newStatus
+        const hasProgressChange = oldProgress !== newProgress
+        
+        if (hasStatusChange || hasProgressChange) {
+          // Get notification message from backend or create one
+          const notificationMessage = latestUpdate.notificationMessage || 
+            createToastMessage(serviceToUpdate, latestUpdate, hasStatusChange, hasProgressChange)
+          
+          // Determine toast variant based on status
+          const toastVariant = newStatus === 'COMPLETED' ? 'default' : 
+                              newStatus === 'CANCELLED' ? 'destructive' : 
+                              'default'
+          
+          toast({
+            title: latestUpdate.notificationTitle || "Service Update",
+            description: notificationMessage,
+            variant: toastVariant,
+          })
+          
+          console.log('[CustomerProgress] 🔔 Toast notification shown')
+        }
 
         // Create updated service object
         const updatedService: CustomerService = {

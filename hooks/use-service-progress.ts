@@ -9,6 +9,8 @@ interface ServiceProgressUpdate {
   progress: number
   vehicle?: string
   service?: string
+  notificationTitle?: string
+  notificationMessage?: string
 }
 
 export function useServiceProgress() {
@@ -32,6 +34,8 @@ export function useServiceProgress() {
         progress: latestMessage.data.progress,
         vehicle: latestMessage.data.vehicle,
         service: latestMessage.data.service,
+        notificationTitle: latestMessage.data.notificationTitle,
+        notificationMessage: latestMessage.data.notificationMessage,
       })
     }
   }, [messages])
