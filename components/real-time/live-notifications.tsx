@@ -12,9 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useNotifications } from './notification-provider'
+import { useState } from 'react'
 
 export function LiveNotifications() {
-  const { notifications, unreadCount, markAsRead, clearAll } = useNotifications()
+  const { notifications, unreadCount, markAsRead, clearAll, refreshCount } = useNotifications()
+  const [isOpen, setIsOpen] = useState(false)
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -40,8 +42,59 @@ export function LiveNotifications() {
     return date.toLocaleDateString()
   }
 
+  // Mark all notifications as read when dropdown opens
+  const handleOpenChange = async (open: boolean) => {
+    setIsOpen(open)
+    
+    if (open && unreadCount > 0) {
+      try {
+        const token = localStorage.getItem('accessToken')
+        if (!token) return
+
+        // Call backend API to mark all as read
+        const response = await fetch('http://localhost:8080/api/notifications/read-all', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          console.log('[LiveNotifications] ✅ All notifications marked as read')
+          // Refresh the count from backend
+          refreshCount()
+        }
+      } catch (error) {
+        console.error('[LiveNotifications] ❌ Error marking notifications as read:', error)
+      }
+    }
+  }
+
+  const handleClearAll = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      if (!token) return
+
+      // Mark all as read in backend
+      await fetch('http://localhost:8080/api/notifications/read-all', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      // Clear local state
+      clearAll()
+      console.log('[LiveNotifications] ✅ All notifications cleared')
+    } catch (error) {
+      console.error('[LiveNotifications] ❌ Error clearing notifications:', error)
+    }
+  }
+
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="relative">
           <Bell className="h-4 w-4" />
@@ -55,8 +108,8 @@ export function LiveNotifications() {
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between p-2">
           <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearAll}>
+          {notifications.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleClearAll}>
               <X className="h-3 w-3" />
             </Button>
           )}
@@ -84,7 +137,8 @@ export function LiveNotifications() {
                       {notification.type === 'notification' && 'System Notification'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {notification.data.message ||
+                      {notification.data.notificationMessage ||
+                        notification.data.message ||
                         `Service #${notification.data.serviceId} updated` ||
                         'New update available'}
                     </p>

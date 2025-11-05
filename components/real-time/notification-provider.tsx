@@ -106,7 +106,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const markAsRead = (id: string) => {
     console.log('[NotificationProvider] Marking notification as read:', id)
-    setUnreadCount(prev => Math.max(0, prev - 1))
+    // Don't decrement here - let the backend API handle it
   }
 
   const clearAll = () => {
