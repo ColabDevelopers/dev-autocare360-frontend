@@ -54,29 +54,12 @@ interface Appointment {
 }
 
 interface Service {
-  id: string;
+  id: number;
   name: string;
-  duration: string;
-  price: string;
+  duration: number; // in hours
+  price: number;
+  type?: string; // category
 }
-
-const services: Service[] = [
-  { id: 'oil-change', name: 'Oil Change', duration: '30 min', price: '$45' },
-  { id: 'brake-service', name: 'Brake Service', duration: '2 hours', price: '$120' },
-  { id: 'tire-rotation', name: 'Tire Rotation', duration: '45 min', price: '$35' },
-  { id: 'ac-service', name: 'AC Service', duration: '1.5 hours', price: '$85' },
-  { id: 'transmission', name: 'Transmission Service', duration: '3 hours', price: '$200' },
-  { id: 'inspection', name: 'General Inspection', duration: '1 hour', price: '$60' },
-  { id: 'engine-diagnostic', name: 'Engine Diagnostic', duration: '2 hours', price: '$150' },
-  { id: 'wheel-alignment', name: 'Wheel Alignment', duration: '1 hour', price: '$75' },
-  { id: 'battery-replacement', name: 'Battery Replacement', duration: '45 min', price: '$120' },
-  { id: 'coolant-flush', name: 'Coolant Flush', duration: '1 hour', price: '$90' },
-  { id: 'suspension-repair', name: 'Suspension Repair', duration: '3 hours', price: '$250' },
-  { id: 'exhaust-repair', name: 'Exhaust System Repair', duration: '2 hours', price: '$180' },
-  { id: 'timing-belt', name: 'Timing Belt Replacement', duration: '4 hours', price: '$350' },
-  { id: 'detailing', name: 'Full Car Detailing', duration: '3 hours', price: '$200' },
-  { id: 'windshield-repair', name: 'Windshield Repair/Replacement', duration: '1.5 hours', price: '$150' },
-]
 
 export default function AppointmentsPage() {
   // Fetch user's vehicles dynamically
@@ -85,6 +68,10 @@ export default function AppointmentsPage() {
   // State for employees/technicians
   const [technicians, setTechnicians] = useState<EmployeeResponse[]>([])
   const [techniciansLoading, setTechniciansLoading] = useState(true)
+  
+  // State for services
+  const [services, setServices] = useState<Service[]>([])
+  const [servicesLoading, setServicesLoading] = useState(true)
   
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
@@ -177,18 +164,48 @@ export default function AppointmentsPage() {
         console.log('🔍 Fetching technicians from /api/employees...')
         setTechniciansLoading(true)
         const employees = await listTechnicians()
-        console.log('✅ Technicians loaded:', employees)
-        console.log('📊 Number of technicians:', employees.length)
+        console.log('Technicians loaded:', employees)
+        console.log('Number of technicians:', employees.length)
         setTechnicians(employees)
       } catch (err) {
-        console.error('❌ Failed to load employees:', err)
+        console.error('Failed to load employees:', err)
         setTechnicians([])
       } finally {
         setTechniciansLoading(false)
-        console.log('🏁 Technician loading complete')
+        console.log('Technician loading complete')
       }
     }
     fetchTechnicians()
+  }, [])
+
+  // Fetch services on load
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        console.log('Fetching services from /api/services...')
+        setServicesLoading(true)
+        const response = await apiCall('/api/services', { method: 'GET' })
+        console.log('Services response:', response)
+        
+        // Map the backend response to our Service type
+        const serviceList = response.items?.map((item: any) => ({
+          id: item.id,
+          name: item.name || 'Unknown Service',
+          duration: item.duration || 0, // duration in hours
+          price: item.price || 0,
+          type: item.type || 'General'
+        })) || []
+        
+        console.log('Services loaded:', serviceList.length, 'services')
+        setServices(serviceList)
+      } catch (err) {
+        console.error('Failed to load services:', err)
+        setServices([])
+      } finally {
+        setServicesLoading(false)
+      }
+    }
+    fetchServices()
   }, [])
 
   const fetchAppointments = async () => {
@@ -245,8 +262,9 @@ export default function AppointmentsPage() {
         normalizedTime = normalizedTime + ':00'
       }
 
+      const selectedService = services.find(s => s.id === parseInt(bookingForm.service))
       const payload = {
-        service: services.find(s => s.id === bookingForm.service)?.name || '',
+        service: selectedService?.name || '',
         vehicle: bookingForm.vehicle,
         date: normalizedDate,
         time: normalizedTime,
@@ -313,7 +331,7 @@ export default function AppointmentsPage() {
     setIsRescheduling(true)
     setSelectedAppointment(appointment)
     setBookingForm({
-      service: services.find(s => s.name === appointment.service)?.id || '',
+      service: String(services.find(s => s.name === appointment.service)?.id || ''),
       vehicle: appointment.vehicle,
       date: appointment.date,
       time: appointment.time,
@@ -386,7 +404,7 @@ export default function AppointmentsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
+            <DialogHeader className="shrink-0">
               <DialogTitle>{isRescheduling ? 'Reschedule Appointment' : 'Book New Appointment'}</DialogTitle>
               <DialogDescription>
                 {isRescheduling ? 'Update your appointment details.' : 'Schedule a service appointment for your vehicle.'}
@@ -401,7 +419,7 @@ export default function AppointmentsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {services.map(service => (
-                      <SelectItem key={service.id} value={service.id}>
+                      <SelectItem key={service.id} value={String(service.id)}>
                         <div className="flex justify-between w-full">
                           <span>{service.name}</span>
                           <span className="text-muted-foreground ml-4">{service.price}</span>
@@ -542,7 +560,7 @@ export default function AppointmentsPage() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end space-x-2 flex-shrink-0 pt-4 border-t">
+            <div className="flex justify-end space-x-2 shrink-0 pt-4 border-t">
               <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
                 Cancel
               </Button>

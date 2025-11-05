@@ -44,7 +44,7 @@ export default function EmployeeAppointments() {
     const fetchAppointments = async () => {
       try {
         setLoading(true)
-        console.log('🔍 Fetching employee appointments...')
+        console.log('Fetching employee appointments...')
         
         // First, verify we have a valid token and employee role
         const token = localStorage.getItem('accessToken')
@@ -70,9 +70,9 @@ export default function EmployeeAppointments() {
         
         const data = await apiCall('/employee/appointments', { method: 'GET' })
         setAppointments(Array.isArray(data) ? data : [])
-        console.log('✅ Employee appointments loaded:', data?.length || 0, 'appointments')
+        console.log('Employee appointments loaded:', data?.length || 0, 'appointments')
       } catch (err: any) {
-        console.error('❌ Error fetching appointments:', err)
+        console.error('Error fetching appointments:', err)
         setError(err.message || 'Failed to load appointments')
       } finally {
         setLoading(false)
@@ -81,6 +81,27 @@ export default function EmployeeAppointments() {
 
     fetchAppointments()
   }, [])
+
+  const handleStartService = async (appointmentId: number) => {
+    try {
+      console.log('Starting service for appointment:', appointmentId)
+      await apiCall(`/employee/appointments/${appointmentId}/start`, { method: 'PUT' })
+      
+      // Update local state
+      setAppointments(prev => 
+        prev.map(apt => 
+          apt.id === appointmentId 
+            ? { ...apt, status: 'IN_PROGRESS' }
+            : apt
+        )
+      )
+      
+      console.log('Service started successfully')
+    } catch (err: any) {
+      console.error('Error starting service:', err)
+      alert('Failed to start service: ' + (err.message || 'Unknown error'))
+    }
+  }
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -158,7 +179,7 @@ export default function EmployeeAppointments() {
         <h1 className="text-3xl font-bold text-foreground">Today's Appointments</h1>
         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>January 20, 2024</span>
+          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
         </div>
       </div>
 
@@ -223,7 +244,13 @@ export default function EmployeeAppointments() {
                 )}
 
                 <div className="flex space-x-2 mt-4">
-                  <Button size="sm">Start Service</Button>
+                  <Button 
+                    size="sm"
+                    onClick={() => handleStartService(appointment.id)}
+                    disabled={appointment.status?.toUpperCase() !== 'CONFIRMED'}
+                  >
+                    {appointment.status?.toUpperCase() === 'IN_PROGRESS' ? 'Service in Progress' : 'Start Service'}
+                  </Button>
                   <Button 
                     size="sm" 
                     variant="outline"
@@ -242,9 +269,7 @@ export default function EmployeeAppointments() {
                     <MessageCircle className="h-4 w-4 mr-1" />
                     Contact Customer
                   </Button>
-                  <Button size="sm" variant="outline">
-                    View Details
-                  </Button>
+                 
                 </div>
               </CardContent>
             </Card>
