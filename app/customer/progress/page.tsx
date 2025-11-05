@@ -290,34 +290,86 @@ export default function CustomerProgress() {
           return prevData
         }
 
-        // Update service in all arrays
-        const updateService = (service: CustomerService) => {
-          if (service.id === latestUpdate.serviceId) {
-            console.log('[CustomerProgress] 🔄 Updating service:', service.id, 'Progress:', latestUpdate.progress)
-            return {
-              ...service,
-              status: latestUpdate.status,
-              progress: latestUpdate.progress,
-              updatedAt: new Date().toISOString(),
-            }
-          }
-          return service
+        // Find the service being updated
+        const serviceToUpdate = prevData.allServices.find(s => s.id === latestUpdate.serviceId)
+        
+        if (!serviceToUpdate) {
+          console.log('[CustomerProgress] ⚠️ Service not found:', latestUpdate.serviceId)
+          return prevData
         }
 
-        const updatedAllServices = prevData.allServices.map(updateService)
-        const updatedCategorized = {
-          SCHEDULED: prevData.categorized.SCHEDULED.map(updateService),
-          IN_PROGRESS: prevData.categorized.IN_PROGRESS.map(updateService),
-          COMPLETED: prevData.categorized.COMPLETED.map(updateService),
-          CANCELLED: prevData.categorized.CANCELLED.map(updateService),
+        const oldStatus = serviceToUpdate.status.toUpperCase()
+        const newStatus = latestUpdate.status.toUpperCase()
+        
+        console.log('[CustomerProgress] 🔄 Updating service:', serviceToUpdate.id)
+        console.log('[CustomerProgress] Status change:', oldStatus, '→', newStatus)
+        console.log('[CustomerProgress] Progress:', serviceToUpdate.progress, '→', latestUpdate.progress)
+
+        // Create updated service object
+        const updatedService: CustomerService = {
+          ...serviceToUpdate,
+          status: latestUpdate.status,
+          progress: latestUpdate.progress,
+          updatedAt: new Date().toISOString(),
+        }
+
+        // Update allServices array
+        const updatedAllServices = prevData.allServices.map(service =>
+          service.id === latestUpdate.serviceId ? updatedService : service
+        )
+
+        // Recategorize services: Remove from old category, add to new category
+        const getCategoryKey = (status: string): keyof ServiceResponse['categorized'] => {
+          const upperStatus = status.toUpperCase()
+          if (upperStatus === 'PENDING') return 'SCHEDULED'
+          if (['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(upperStatus)) {
+            return upperStatus as keyof ServiceResponse['categorized']
+          }
+          return 'SCHEDULED' // default
+        }
+
+        const oldCategory = getCategoryKey(oldStatus)
+        const newCategory = getCategoryKey(newStatus)
+
+        let updatedCategorized = { ...prevData.categorized }
+
+        // If status changed, move service between categories
+        if (oldCategory !== newCategory) {
+          console.log('[CustomerProgress] 📦 Moving service from', oldCategory, 'to', newCategory)
+          
+          // Remove from old category
+          updatedCategorized[oldCategory] = updatedCategorized[oldCategory].filter(
+            s => s.id !== latestUpdate.serviceId
+          )
+          
+          // Add to new category
+          updatedCategorized[newCategory] = [
+            ...updatedCategorized[newCategory],
+            updatedService
+          ]
+        } else {
+          // Same category, just update the service
+          updatedCategorized[newCategory] = updatedCategorized[newCategory].map(service =>
+            service.id === latestUpdate.serviceId ? updatedService : service
+          )
+        }
+
+        // Update counts
+        const updatedCounts = {
+          scheduled: updatedCategorized.SCHEDULED.length,
+          inProgress: updatedCategorized.IN_PROGRESS.length,
+          completed: updatedCategorized.COMPLETED.length,
+          cancelled: updatedCategorized.CANCELLED.length,
         }
 
         console.log('[CustomerProgress] ✨ State updated successfully')
+        console.log('[CustomerProgress] New counts:', updatedCounts)
 
         return {
           ...prevData,
           allServices: updatedAllServices,
           categorized: updatedCategorized,
+          counts: updatedCounts,
         }
       })
     } else {
