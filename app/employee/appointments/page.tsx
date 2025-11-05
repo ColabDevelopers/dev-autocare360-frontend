@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, User, Phone } from 'lucide-react'
+import { Calendar, Clock, User, Phone, MessageCircle } from 'lucide-react'
 import { apiCall } from '@/lib/api'
+import { MessagingDialog } from '@/components/employee/messaging-dialog'
 
 type Appointment = {
   id: number
@@ -27,6 +28,17 @@ export default function EmployeeAppointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [messagingDialog, setMessagingDialog] = useState<{
+    open: boolean
+    customerId: number
+    customerName: string
+    customerEmail: string
+  }>({
+    open: false,
+    customerId: 0,
+    customerName: '',
+    customerEmail: ''
+  })
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -212,7 +224,22 @@ export default function EmployeeAppointments() {
 
                 <div className="flex space-x-2 mt-4">
                   <Button size="sm">Start Service</Button>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      if (appointment.user) {
+                        setMessagingDialog({
+                          open: true,
+                          customerId: appointment.user.id,
+                          customerName: appointment.user.name,
+                          customerEmail: appointment.user.email
+                        })
+                      }
+                    }}
+                    disabled={!appointment.user}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
                     Contact Customer
                   </Button>
                   <Button size="sm" variant="outline">
@@ -224,6 +251,15 @@ export default function EmployeeAppointments() {
           ))
         )}
       </div>
+
+      {/* Messaging Dialog */}
+      <MessagingDialog
+        open={messagingDialog.open}
+        onOpenChange={(open) => setMessagingDialog(prev => ({ ...prev, open }))}
+        customerId={messagingDialog.customerId}
+        customerName={messagingDialog.customerName}
+        customerEmail={messagingDialog.customerEmail}
+      />
     </div>
   )
 }
