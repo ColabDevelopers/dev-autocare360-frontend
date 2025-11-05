@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Clock, CheckCircle, AlertCircle, Calendar, User, Wrench, FileText, XCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useServiceProgress } from '@/hooks/use-service-progress'
+import { toast } from '@/hooks/use-toast'
 
 interface CustomerService {
   id: number
@@ -93,6 +95,50 @@ const formatDateTime = (dateStr: string | null) => {
   } catch {
     return dateStr
   }
+}
+
+// Helper function to create toast message
+const createToastMessage = (
+  service: CustomerService,
+  update: { status: string; progress: number; vehicle?: string; service?: string },
+  hasStatusChange: boolean,
+  hasProgressChange: boolean
+): string => {
+  const serviceName = update.service || service.service
+  const vehicleName = update.vehicle || service.vehicle
+  
+  let message = `Your ${serviceName} service for ${vehicleName}`
+  
+  if (hasStatusChange) {
+    const status = update.status.toUpperCase()
+    switch (status) {
+      case 'IN_PROGRESS':
+        message += ' is now in progress'
+        break
+      case 'COMPLETED':
+        message += ' has been completed'
+        break
+      case 'CANCELLED':
+        message += ' has been cancelled'
+        break
+      case 'PENDING':
+      case 'SCHEDULED':
+        message += ' is scheduled'
+        break
+      default:
+        message += ` status updated to ${update.status}`
+    }
+    
+    if (update.progress !== undefined && update.progress > 0) {
+      message += ` (${update.progress}% complete)`
+    }
+  } else if (hasProgressChange) {
+    message += ` - Progress updated to ${update.progress}%`
+  }
+  
+  message += '.'
+  
+  return message
 }
 
 const ServiceCard = ({ service }: { service: CustomerService }) => (
@@ -225,6 +271,9 @@ export default function CustomerProgress() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('all')
+  
+  // Real-time service progress updates
+  const { latestUpdate, isConnected } = useServiceProgress()
 
   const fetchServices = async () => {
     // Check if we're on the client side
@@ -273,6 +322,131 @@ export default function CustomerProgress() {
       fetchServices()
     }
   }, [])
+
+  // Handle real-time service progress updates
+  useEffect(() => {
+    if (latestUpdate && data) {
+      console.log('[CustomerProgress] ✅ Processing real-time update:', latestUpdate)
+      console.log('[CustomerProgress] Current data:', data)
+      
+      setData(prevData => {
+        if (!prevData) {
+          console.log('[CustomerProgress] ⚠️ No previous data')
+          return prevData
+        }
+
+        // Find the service being updated
+        const serviceToUpdate = prevData.allServices.find(s => s.id === latestUpdate.serviceId)
+        
+        if (!serviceToUpdate) {
+          console.log('[CustomerProgress] ⚠️ Service not found:', latestUpdate.serviceId)
+          return prevData
+        }
+
+        const oldStatus = serviceToUpdate.status.toUpperCase()
+        const newStatus = latestUpdate.status.toUpperCase()
+        const oldProgress = serviceToUpdate.progress
+        const newProgress = latestUpdate.progress
+        
+        console.log('[CustomerProgress] 🔄 Updating service:', serviceToUpdate.id)
+        console.log('[CustomerProgress] Status change:', oldStatus, '→', newStatus)
+        console.log('[CustomerProgress] Progress:', oldProgress, '→', newProgress)
+
+        // Show toast notification for the update
+        const hasStatusChange = oldStatus !== newStatus
+        const hasProgressChange = oldProgress !== newProgress
+        
+        if (hasStatusChange || hasProgressChange) {
+          // Get notification message from backend or create one
+          const notificationMessage = latestUpdate.notificationMessage || 
+            createToastMessage(serviceToUpdate, latestUpdate, hasStatusChange, hasProgressChange)
+          
+          // Determine toast variant based on status
+          const toastVariant = newStatus === 'COMPLETED' ? 'default' : 
+                              newStatus === 'CANCELLED' ? 'destructive' : 
+                              'default'
+          
+          toast({
+            title: latestUpdate.notificationTitle || "Service Update",
+            description: notificationMessage,
+            variant: toastVariant,
+          })
+          
+          console.log('[CustomerProgress] 🔔 Toast notification shown')
+        }
+
+        // Create updated service object
+        const updatedService: CustomerService = {
+          ...serviceToUpdate,
+          status: latestUpdate.status,
+          progress: latestUpdate.progress,
+          updatedAt: new Date().toISOString(),
+        }
+
+        // Update allServices array
+        const updatedAllServices = prevData.allServices.map(service =>
+          service.id === latestUpdate.serviceId ? updatedService : service
+        )
+
+        // Recategorize services: Remove from old category, add to new category
+        const getCategoryKey = (status: string): keyof ServiceResponse['categorized'] => {
+          const upperStatus = status.toUpperCase()
+          if (upperStatus === 'PENDING') return 'SCHEDULED'
+          if (['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(upperStatus)) {
+            return upperStatus as keyof ServiceResponse['categorized']
+          }
+          return 'SCHEDULED' // default
+        }
+
+        const oldCategory = getCategoryKey(oldStatus)
+        const newCategory = getCategoryKey(newStatus)
+
+        let updatedCategorized = { ...prevData.categorized }
+
+        // If status changed, move service between categories
+        if (oldCategory !== newCategory) {
+          console.log('[CustomerProgress] 📦 Moving service from', oldCategory, 'to', newCategory)
+          
+          // Remove from old category
+          updatedCategorized[oldCategory] = updatedCategorized[oldCategory].filter(
+            s => s.id !== latestUpdate.serviceId
+          )
+          
+          // Add to new category
+          updatedCategorized[newCategory] = [
+            ...updatedCategorized[newCategory],
+            updatedService
+          ]
+        } else {
+          // Same category, just update the service
+          updatedCategorized[newCategory] = updatedCategorized[newCategory].map(service =>
+            service.id === latestUpdate.serviceId ? updatedService : service
+          )
+        }
+
+        // Update counts
+        const updatedCounts = {
+          scheduled: updatedCategorized.SCHEDULED.length,
+          inProgress: updatedCategorized.IN_PROGRESS.length,
+          completed: updatedCategorized.COMPLETED.length,
+          cancelled: updatedCategorized.CANCELLED.length,
+        }
+
+        console.log('[CustomerProgress] ✨ State updated successfully')
+        console.log('[CustomerProgress] New counts:', updatedCounts)
+
+        return {
+          ...prevData,
+          allServices: updatedAllServices,
+          categorized: updatedCategorized,
+          counts: updatedCounts,
+        }
+      })
+    } else {
+      if (!latestUpdate) console.log('[CustomerProgress] No latest update yet')
+      if (!data) console.log('[CustomerProgress] No data loaded yet')
+    }
+  }, [latestUpdate, data])
 
   if (loading) {
     return (
