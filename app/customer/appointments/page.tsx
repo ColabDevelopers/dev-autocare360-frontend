@@ -240,7 +240,22 @@ export default function AppointmentsPage() {
       const dateStr = formatDateLocal(date)
       const techParam = technician ? `&technician=${encodeURIComponent(technician)}` : ''
       const data = await apiCall(`${API_CONFIG.ENDPOINTS.AVAILABILITY}?date=${dateStr}${techParam}`, { method: 'GET' })
-      setAvailableTimes(data.timeSlots || []) // Use timeSlots from backend response
+      let times = data.timeSlots || []
+      
+      // Filter out past times if selected date is today
+      const isToday = formatDateLocal(date) === formatDateLocal(new Date())
+      if (isToday) {
+        const now = new Date()
+        const currentHour = now.getHours()
+        const currentMinute = now.getMinutes()
+        
+        times = times.filter((time: string) => {
+          const [hours, minutes] = time.split(':').map(Number)
+          return hours > currentHour || (hours === currentHour && minutes > currentMinute)
+        })
+      }
+      
+      setAvailableTimes(times)
     } catch (err) {
       console.error('Error fetching availability:', err)
       setAvailableTimes([])
