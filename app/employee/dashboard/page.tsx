@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import {
   CalendarIcon,
   Clock,
@@ -17,6 +16,8 @@ import {
   Pause,
   BarChart3,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import {
   Bar,
@@ -136,9 +137,15 @@ const taskDistribution = [
 
 export default function EmployeeDashboard() {
   const { toast } = useToast()
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [weekOffset, setWeekOffset] = useState(0) // 0 = current week, -1 = last week, 1 = next week
+  const [isLoadingWeek, setIsLoadingWeek] = useState(false)
+
+  // Cache for weekly workload data - key is week offset
+  const [weeklyWorkloadCache, setWeeklyWorkloadCache] = useState<Map<number, WeeklyWorkload[]>>(
+    new Map()
+  )
 
   // State for API data
   const [summary, setSummary] = useState<EmployeeDashboardSummary | null>(null)
@@ -159,6 +166,18 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     loadAllData()
   }, [])
+
+  // Reload weekly workload when week offset changes
+  useEffect(() => {
+    if (!isLoading) {
+      const loadWeek = async () => {
+        await fetchWeeklyWorkload(weekOffset, true)
+        // After loading current week, prefetch adjacent weeks
+        prefetchAdjacentWeeks(weekOffset)
+      }
+      loadWeek()
+    }
+  }, [weekOffset])
 
   // Timer functionality - poll every 5 seconds if timer is active
   useEffect(() => {
@@ -224,14 +243,58 @@ export default function EmployeeDashboard() {
     }
   }
 
-  const fetchWeeklyWorkload = async () => {
+  const fetchWeeklyWorkload = async (offset: number = 0, showLoader: boolean = false) => {
+    // Check cache first
+    const cached = weeklyWorkloadCache.get(offset)
+    if (cached) {
+      console.log(`📦 Using cached data for week offset ${offset}`)
+      setWeeklyWorkload(cached)
+      return cached
+    }
+
+    if (showLoader) {
+      setIsLoadingWeek(true)
+    }
     try {
-      const data = await getWeeklyWorkload()
-      console.log('📈 Weekly Workload:', data)
+      const data = await getWeeklyWorkload(offset)
+      console.log(`📈 Fetched Weekly Workload for offset ${offset}:`, data)
+
+      // Update cache
+      setWeeklyWorkloadCache(prev => {
+        const newCache = new Map(prev)
+        newCache.set(offset, data)
+        return newCache
+      })
+
       setWeeklyWorkload(data)
+      return data
     } catch (error) {
       console.error('Error fetching weekly workload:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load weekly workload',
+        variant: 'destructive',
+      })
+      return []
+    } finally {
+      if (showLoader) {
+        setIsLoadingWeek(false)
+      }
     }
+  }
+
+  // Prefetch adjacent weeks in the background
+  const prefetchAdjacentWeeks = async (currentOffset: number) => {
+    const weeksToPrefetch = [currentOffset - 1, currentOffset + 1].filter(
+      offset => !weeklyWorkloadCache.has(offset) && offset <= 0 // Don't prefetch future weeks
+    )
+
+    console.log(`🔮 Prefetching weeks: ${weeksToPrefetch.join(', ')}`)
+
+    // Fetch in parallel without showing loaders
+    weeksToPrefetch.forEach(offset => {
+      fetchWeeklyWorkload(offset, false)
+    })
   }
 
   const fetchTaskDistribution = async () => {
@@ -414,6 +477,43 @@ export default function EmployeeDashboard() {
 
   const getStatusDisplayName = (status: string) => {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+
+  // Get week date range for display
+  const getWeekDateRange = () => {
+    const today = new Date()
+    const currentDay = today.getDay()
+    const diff = currentDay === 0 ? -6 : 1 - currentDay // Adjust to Monday
+
+    const monday = new Date(today)
+    monday.setDate(today.getDate() + diff + weekOffset * 7)
+
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }
+
+    return `${formatDate(monday)} - ${formatDate(sunday)}`
+  }
+
+  const handlePreviousWeek = () => {
+    if (!isLoadingWeek) {
+      setWeekOffset(prev => prev - 1)
+    }
+  }
+
+  const handleNextWeek = () => {
+    if (!isLoadingWeek && weekOffset < 0) {
+      setWeekOffset(prev => prev + 1)
+    }
+  }
+
+  const handleCurrentWeek = () => {
+    if (!isLoadingWeek) {
+      setWeekOffset(0)
+    }
   }
 
   if (isLoading) {
@@ -687,38 +787,80 @@ export default function EmployeeDashboard() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Calendar */}
+          {/* Weekly Workload with Navigation */}
           <Card className="border-border/50">
             <CardHeader>
-              <CardTitle>Calendar</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Weekly Hours</CardTitle>
+                {weekOffset !== 0 && (
+                  <Button variant="ghost" size="sm" onClick={handleCurrentWeek} className="text-xs">
+                    Current Week
+                  </Button>
+                )}
+              </div>
+              <CardDescription className="flex items-center justify-between mt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePreviousWeek}
+                  disabled={isLoadingWeek}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium">
+                  {weekOffset === 0
+                    ? 'This Week'
+                    : weekOffset === -1
+                      ? 'Last Week'
+                      : weekOffset === 1
+                        ? 'Next Week'
+                        : `${Math.abs(weekOffset)} weeks ago`}
+                  <br />
+                  <span className="text-xs text-muted-foreground">{getWeekDateRange()}</span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNextWeek}
+                  disabled={weekOffset >= 0 || isLoadingWeek} // Can't go to future weeks
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border border-border"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Weekly Workload */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle>Weekly Hours</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {weeklyWorkload.length === 0 ? (
+              {isLoadingWeek ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : weeklyWorkload.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No workload data</p>
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={weeklyWorkload}>
-                    <XAxis dataKey="dayName" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="hours" fill="#3b82f6" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={weeklyWorkload}>
+                      <XAxis dataKey="dayName" />
+                      <YAxis />
+                      
+                      <Bar dataKey="hours" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="mt-4 flex justify-between text-sm text-muted-foreground">
+                    <span>
+                      Total: {weeklyWorkload.reduce((sum, day) => sum + day.hours, 0).toFixed(1)}h
+                    </span>
+                    <span>
+                      Avg:{' '}
+                      {(
+                        weeklyWorkload.reduce((sum, day) => sum + day.hours, 0) /
+                        weeklyWorkload.length
+                      ).toFixed(1)}
+                      h/day
+                    </span>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
