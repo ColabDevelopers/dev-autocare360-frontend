@@ -31,7 +31,18 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Clock, Plus, Play, Pause, Edit, Trash2, Calendar, Loader2 } from 'lucide-react'
+import {
+  Clock,
+  Plus,
+  Play,
+  Pause,
+  Edit,
+  Trash2,
+  Calendar,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   getTimeLogs,
@@ -44,6 +55,7 @@ import {
   stopTimer,
   getActiveTimer,
   type TimeLogResponse,
+  type PaginatedTimeLogResponse,
   type ActiveProject,
   type TimerResponse,
   type TimeLogSummary,
@@ -65,6 +77,13 @@ export default function TimeLogsPage() {
   const [isStoppingTimer, setIsStoppingTimer] = useState(false)
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const displayTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
+  const [pageSize] = useState(10)
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false)
 
   const [newTimeLog, setNewTimeLog] = useState({
     appointmentId: '',
@@ -173,13 +192,19 @@ export default function TimeLogsPage() {
     }
   }
 
-  const fetchTimeLogs = async () => {
+  const fetchTimeLogs = async (page: number = currentPage) => {
     try {
-      const logs = await getTimeLogs()
-      console.log('📋 Fetched Time Logs:', logs)
-      setTimeLogs(logs)
+      setIsPaginationLoading(true)
+      const response = await getTimeLogs(undefined, undefined, page, pageSize)
+      console.log('📋 Fetched Time Logs:', response)
+      setTimeLogs(response.content)
+      setCurrentPage(response.currentPage)
+      setTotalPages(response.totalPages)
+      setTotalItems(response.totalItems)
     } catch (error) {
       console.error('Error fetching time logs:', error)
+    } finally {
+      setIsPaginationLoading(false)
     }
   }
 
@@ -246,9 +271,8 @@ export default function TimeLogsPage() {
       })
       setIsAddDialogOpen(false)
 
-      // Reload data
-      await fetchTimeLogs()
-      await fetchSummary()
+      // Reload data - go back to first page when adding new
+      await Promise.all([fetchTimeLogs(0), fetchSummary()])
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -283,9 +307,8 @@ export default function TimeLogsPage() {
       setIsEditDialogOpen(false)
       setEditingLog(null)
 
-      // Reload data
-      await fetchTimeLogs()
-      await fetchSummary()
+      // Reload data - stay on current page
+      await Promise.all([fetchTimeLogs(currentPage), fetchSummary()])
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -307,9 +330,9 @@ export default function TimeLogsPage() {
         description: 'Time log deleted successfully',
       })
 
-      // Reload data
-      await fetchTimeLogs()
-      await fetchSummary()
+      // Reload data - stay on current page or go back one if last item on page
+      const newPage = timeLogs.length === 1 && currentPage > 0 ? currentPage - 1 : currentPage
+      await Promise.all([fetchTimeLogs(newPage), fetchSummary()])
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -671,57 +694,179 @@ export default function TimeLogsPage() {
               {timeLogs.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No time logs recorded yet</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Hours</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {timeLogs.map(log => (
-                      <TableRow key={log.id}>
-                        <TableCell>{log.date}</TableCell>
-                        <TableCell className="font-medium">{log.project}</TableCell>
-                        <TableCell>{log.customer}</TableCell>
-                        <TableCell>{log.hours}h</TableCell>
-                        <TableCell className="max-w-xs truncate">{log.description}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={
-                              log.status === 'COMPLETED'
-                                ? 'bg-green-500/10 text-green-500'
-                                : 'bg-blue-500/10 text-blue-500'
-                            }
-                          >
-                            {log.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => openEditDialog(log)}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteTimeLog(log.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <div className="relative">
+                  {isPaginationLoading && (
+                    <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10 rounded-md">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  )}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Project</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Hours</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {timeLogs.map(log => (
+                        <TableRow key={log.id}>
+                          <TableCell>{log.date}</TableCell>
+                          <TableCell className="font-medium">{log.project}</TableCell>
+                          <TableCell>{log.customer}</TableCell>
+                          <TableCell>{log.hours}h</TableCell>
+                          <TableCell className="max-w-xs truncate">{log.description}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={
+                                log.status === 'COMPLETED'
+                                  ? 'bg-green-500/10 text-green-500'
+                                  : 'bg-blue-500/10 text-blue-500'
+                              }
+                            >
+                              {log.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEditDialog(log)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteTimeLog(log.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {currentPage * pageSize + 1} to{' '}
+                        {Math.min((currentPage + 1) * pageSize, totalItems)} of {totalItems} entries
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchTimeLogs(currentPage - 1)}
+                          disabled={currentPage === 0 || isPaginationLoading}
+                        >
+                          {isPaginationLoading ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                          )}
+                          Previous
+                        </Button>
+                        <div className="flex items-center space-x-1">
+                          {(() => {
+                            const pages = []
+                            const maxVisible = 5
+                            let startPage = Math.max(0, currentPage - Math.floor(maxVisible / 2))
+                            let endPage = Math.min(totalPages - 1, startPage + maxVisible - 1)
+
+                            // Adjust startPage if we're near the end
+                            if (endPage - startPage < maxVisible - 1) {
+                              startPage = Math.max(0, endPage - maxVisible + 1)
+                            }
+
+                            // Always show first page
+                            if (startPage > 0) {
+                              pages.push(
+                                <Button
+                                  key={0}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => fetchTimeLogs(0)}
+                                  disabled={isPaginationLoading}
+                                  className="min-w-10"
+                                >
+                                  1
+                                </Button>
+                              )
+                              if (startPage > 1) {
+                                pages.push(
+                                  <span key="ellipsis-start" className="px-2">
+                                    ...
+                                  </span>
+                                )
+                              }
+                            }
+
+                            // Show page range
+                            for (let i = startPage; i <= endPage; i++) {
+                              pages.push(
+                                <Button
+                                  key={i}
+                                  variant={i === currentPage ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => fetchTimeLogs(i)}
+                                  disabled={isPaginationLoading}
+                                  className="min-w-10"
+                                >
+                                  {i + 1}
+                                </Button>
+                              )
+                            }
+
+                            // Always show last page
+                            if (endPage < totalPages - 1) {
+                              if (endPage < totalPages - 2) {
+                                pages.push(
+                                  <span key="ellipsis-end" className="px-2">
+                                    ...
+                                  </span>
+                                )
+                              }
+                              pages.push(
+                                <Button
+                                  key={totalPages - 1}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => fetchTimeLogs(totalPages - 1)}
+                                  disabled={isPaginationLoading}
+                                  className="min-w-10"
+                                >
+                                  {totalPages}
+                                </Button>
+                              )
+                            }
+
+                            return pages
+                          })()}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchTimeLogs(currentPage + 1)}
+                          disabled={currentPage >= totalPages - 1 || isPaginationLoading}
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

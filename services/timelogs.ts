@@ -20,6 +20,16 @@ export interface TimeLogResponse {
   updatedAt: string
 }
 
+export interface PaginatedTimeLogResponse {
+  content: TimeLogResponse[]
+  currentPage: number
+  totalItems: number
+  totalPages: number
+  pageSize: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
 export interface CreateTimeLogRequest {
   appointmentId: number
   hours: number
@@ -75,20 +85,24 @@ export interface StopTimerRequest {
 // ============================================
 
 /**
- * 1. GET /api/time-logs - Get all time logs for the logged-in employee
+ * 1. GET /api/time-logs - Get all time logs for the logged-in employee (with pagination)
  * @param startDate Optional start date filter (YYYY-MM-DD)
  * @param endDate Optional end date filter (YYYY-MM-DD)
+ * @param page Page number (0-indexed, default: 0)
+ * @param size Number of items per page (default: 10)
  */
 export async function getTimeLogs(
   startDate?: string,
-  endDate?: string
-): Promise<TimeLogResponse[]> {
-  console.log('🕐 getTimeLogs called with:', { startDate, endDate })
+  endDate?: string,
+  page: number = 0,
+  size: number = 10
+): Promise<PaginatedTimeLogResponse> {
+  console.log('🕐 getTimeLogs called with:', { startDate, endDate, page, size })
   
-  let url = '/api/time-logs'
+  let url = `/api/time-logs?page=${page}&size=${size}`
   
   if (startDate && endDate) {
-    url += `?startDate=${startDate}&endDate=${endDate}`
+    url += `&startDate=${startDate}&endDate=${endDate}`
   }
   
   console.log('🔗 Calling API endpoint:', url)
@@ -96,7 +110,7 @@ export async function getTimeLogs(
   try {
     const data = await apiCall(url, { method: 'GET' })
     console.log('✅ getTimeLogs response:', data)
-    return Array.isArray(data) ? data : []
+    return data as PaginatedTimeLogResponse
   } catch (error) {
     console.error('❌ getTimeLogs failed:', error)
     throw error
