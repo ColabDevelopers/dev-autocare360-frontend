@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Client, IMessage } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 
 export interface WebSocketMessage {
   type: 'service_update' | 'appointment_update' | 'notification' | 'chat_message'
@@ -12,54 +14,54 @@ export interface WebSocketMessage {
 export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false)
   const [messages, setMessages] = useState<WebSocketMessage[]>([])
-  const wsRef = useRef<WebSocket | null>(null)
+  const clientRef = useRef<Client | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
     const connect = () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-      const wsUrl = apiUrl.replace(/^http/, 'ws') + '/ws'
       
-      console.log('[WebSocket] Connecting to:', wsUrl)
+      console.log('[WebSocket] Connecting to:', apiUrl + '/ws')
 
-      try {
-        const ws = new WebSocket(wsUrl)
-        wsRef.current = ws
+      const client = new Client({
+        webSocketFactory: () => new SockJS(apiUrl + '/ws'),
+        debug: (str) => {
+          console.log('[STOMP Debug]', str)
+        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+      })
 
-        ws.onopen = () => {
-          console.log('[WebSocket] Connected successfully')
-          setIsConnected(true)
-        }
+      client.onConnect = () => {
+        console.log('[WebSocket] Connected successfully')
+        setIsConnected(true)
 
-        ws.onmessage = (event) => {
+        // Subscribe to service updates topic
+        client.subscribe('/topic/service-updates', (message: IMessage) => {
           try {
-            const message: WebSocketMessage = JSON.parse(event.data)
-            console.log('[WebSocket] Message received:', message)
-            setMessages(prev => [...prev, message])
+            const parsed = JSON.parse(message.body)
+            console.log('[WebSocket] Service update received:', parsed)
+            setMessages(prev => [...prev, parsed])
           } catch (error) {
             console.error('[WebSocket] Failed to parse message:', error)
           }
-        }
+        })
 
-        ws.onerror = (error) => {
-          console.error('[WebSocket] Error:', error)
-        }
-
-        ws.onclose = () => {
-          console.log('[WebSocket] Disconnected')
-          setIsConnected(false)
-          
-          // Attempt to reconnect after 5 seconds
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('[WebSocket] Attempting to reconnect...')
-            connect()
-          }, 5000)
-        }
-      } catch (error) {
-        console.error('[WebSocket] Connection failed:', error)
-        // Retry connection
-        reconnectTimeoutRef.current = setTimeout(connect, 5000)
+        console.log('[WebSocket] Subscribed to /topic/service-updates')
       }
+
+      client.onStompError = (frame) => {
+        console.error('[WebSocket] STOMP error:', frame)
+      }
+
+      client.onWebSocketClose = () => {
+        console.log('[WebSocket] Disconnected')
+        setIsConnected(false)
+      }
+
+      client.activate()
+      clientRef.current = client
     }
 
     connect()
@@ -69,19 +71,22 @@ export function useWebSocket() {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
       }
-      if (wsRef.current) {
-        wsRef.current.close()
+      if (clientRef.current) {
+        clientRef.current.deactivate()
       }
     }
   }, [])
 
   const sendMessage = (message: Omit<WebSocketMessage, 'timestamp'>) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    if (clientRef.current && clientRef.current.connected) {
       const fullMessage: WebSocketMessage = {
         ...message,
         timestamp: new Date().toISOString(),
       }
-      wsRef.current.send(JSON.stringify(fullMessage))
+      clientRef.current.publish({
+        destination: '/app/message',
+        body: JSON.stringify(fullMessage),
+      })
       console.log('[WebSocket] Message sent:', fullMessage)
     } else {
       console.warn('[WebSocket] Cannot send message - not connected')

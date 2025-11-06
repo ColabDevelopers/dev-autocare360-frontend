@@ -11,6 +11,7 @@ interface NotificationContextType {
   unreadCount: number
   markAsRead: (id: string) => void
   clearAll: () => void
+  refreshCount: () => void
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -19,10 +20,50 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { messages, isConnected } = useWebSocket()
   const [notifications, setNotifications] = useState<WebSocketMessage[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [lastMarkAllReadTime, setLastMarkAllReadTime] = useState<number>(0)
+
+  // Fetch unread notification count from backend
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      if (!token) return
+
+      // Don't fetch if user just marked all as read (within last 2 seconds)
+      const timeSinceMarkAllRead = Date.now() - lastMarkAllReadTime
+      if (timeSinceMarkAllRead < 2000) {
+        console.log('[NotificationProvider] ⏭️ Skipping fetch - just marked all as read')
+        return
+      }
+
+      const response = await fetch('http://localhost:8080/api/notifications/unread/count', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUnreadCount(data.count || 0)
+        console.log('[NotificationProvider] 📊 Unread count from backend:', data.count)
+      }
+    } catch (error) {
+      console.error('[NotificationProvider] ❌ Error fetching unread count:', error)
+    }
+  }
+
+  // Initial fetch of unread count
+  useEffect(() => {
+    fetchUnreadCount()
+    
+    // Refresh count every 30 seconds for offline updates
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
-    console.log('[v0] NotificationProvider - WebSocket connected:', isConnected)
-    console.log('[v0] NotificationProvider - Messages received:', messages.length)
+    console.log('[NotificationProvider] WebSocket connected:', isConnected)
+    console.log('[NotificationProvider] Messages received:', messages.length)
 
     // Filter messages for notifications
     const newNotifications = messages.filter(
@@ -35,17 +76,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (newNotifications.length > notifications.length) {
       const latestNotification = newNotifications[newNotifications.length - 1]
 
-      console.log('[v0] NotificationProvider - New notification:', latestNotification)
+      console.log('[NotificationProvider] 🔔 New notification:', latestNotification)
 
-      // Show toast for new notifications
-      toast({
-        title: getNotificationTitle(latestNotification.type),
-        description: getNotificationDescription(latestNotification),
-      })
+      // Fetch the actual count from backend instead of incrementing locally
+      // This ensures we're always in sync with the database
+      fetchUnreadCount()
     }
 
     setNotifications(newNotifications)
-    setUnreadCount(newNotifications.length)
   }, [messages, notifications.length])
 
   const getNotificationTitle = (type: string) => {
@@ -73,15 +111,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }
 
   const markAsRead = (id: string) => {
-    console.log('[v0] NotificationProvider - Marking notification as read:', id)
-    // Implementation for marking specific notification as read
-    setUnreadCount(prev => Math.max(0, prev - 1))
+    console.log('[NotificationProvider] Marking notification as read:', id)
+    // Don't decrement here - let the backend API handle it
   }
 
   const clearAll = () => {
-    console.log('[v0] NotificationProvider - Clearing all notifications')
+    console.log('[NotificationProvider] Clearing all notifications')
     setNotifications([])
     setUnreadCount(0)
+    setLastMarkAllReadTime(Date.now())
+  }
+
+  const refreshCount = () => {
+    console.log('[NotificationProvider] Refreshing notification count')
+    setLastMarkAllReadTime(Date.now())
+    fetchUnreadCount()
   }
 
   return (
@@ -91,6 +135,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         unreadCount,
         markAsRead,
         clearAll,
+        refreshCount,
       }}
     >
       {children}
