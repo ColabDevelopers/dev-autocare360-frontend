@@ -15,6 +15,7 @@ export async function createProjectRequest(data: CreateProjectRequest): Promise<
     ...(data.estimatedCost && { estimatedCost: data.estimatedCost }),
     ...(data.estimatedDurationDays && { estimatedDurationDays: data.estimatedDurationDays }),
     ...(data.specialInstructions && { specialInstructions: data.specialInstructions }),
+    ...(data.requestedAt && { requestedAt: data.requestedAt }),
   };
 
   console.log('🚀 Sending corrected project request data:', JSON.stringify(projectRequestData, null, 2));
@@ -33,6 +34,40 @@ export async function createProjectRequest(data: CreateProjectRequest): Promise<
   }
 }
 
+// Update a project request
+export async function updateProjectRequest(id: number, data: Partial<CreateProjectRequest>): Promise<ProjectRequest> {
+  console.log('🔄 Updating project request:', id, data);
+
+  try {
+    const response = await apiCall(`/api/project-requests/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+
+    console.log('✅ Project request updated successfully:', response);
+    return response;
+  } catch (error) {
+    console.error('❌ Project request update failed:', error);
+    throw error;
+  }
+}
+
+// Delete a project request
+export async function deleteProjectRequest(id: number): Promise<void> {
+  console.log('🗑️ Deleting project request:', id);
+
+  try {
+    await apiCall(`/api/project-requests/${id}`, {
+      method: 'DELETE',
+    });
+
+    console.log('✅ Project request deleted successfully');
+  } catch (error) {
+    console.error('❌ Project request deletion failed:', error);
+    throw error;
+  }
+}
+
 // Get customer projects
 export async function getCustomerProjects(): Promise<ProjectRequest[]> {
   try {
@@ -40,11 +75,8 @@ export async function getCustomerProjects(): Promise<ProjectRequest[]> {
       method: 'GET'
     })
     
-    console.log('🔍 Raw backend response for projects:', response)
-    
     // Handle paginated response with items array
     if (response?.items && Array.isArray(response.items)) {
-      console.log('✅ Projects found in items array:', response.items)
       return response.items as ProjectRequest[]
     }
     

@@ -10,7 +10,7 @@ export interface ProjectRequest {
   estimatedCost?: number;
   estimatedDurationDays?: number;
   specialInstructions?: string;
-  requestDate: string;
+  requestedAt: string; // Changed from requestDate to match backend
   completionDate?: string;
   assignedEmployeeId?: number;
   customerId: number;
@@ -56,4 +56,5 @@ export interface CreateProjectRequest {
   estimatedCost?: number;
   estimatedDurationDays?: number;
   specialInstructions?: string;
+  requestedAt?: string; // Changed from requestDate to match backend
 }

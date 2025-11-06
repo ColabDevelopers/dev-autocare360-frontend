@@ -23,8 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Calendar, Clock, DollarSign, User, Loader2 } from 'lucide-react'
-import { createProjectRequest, getCustomerProjects } from '@/lib/projects'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Plus, Calendar, Clock, DollarSign, User, Loader2, Edit, Trash2, MoreHorizontal } from 'lucide-react'
+import { createProjectRequest, getCustomerProjects, updateProjectRequest, deleteProjectRequest } from '@/lib/projects'
 import { listVehicles } from '@/lib/vehicles'
 import type { ProjectRequest, CreateProjectRequest } from '@/types/project'
 import type { Vehicle } from '@/types/vehicle'
@@ -35,25 +41,28 @@ interface ProjectRequestForm {
   title: string;
   vehicle: string;
   description: string;
-  budget: string;
   priority: 'low' | 'medium' | 'high';
   projectType: 'MODIFICATION' | 'CUSTOM_WORK' | 'UPGRADE' | 'REPAIR';
+  requestedAt: string; // Changed from requestDate to match backend
 }
 
 export default function CustomerProjects() {
   const { toast } = useToast()
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<ProjectRequest | null>(null)
   const [projects, setProjects] = useState<ProjectRequest[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState<number | null>(null)
   const [projectRequest, setProjectRequest] = useState<ProjectRequestForm>({
     title: '',
     vehicle: '',
     description: '',
-    budget: '',
     priority: 'medium',
     projectType: 'MODIFICATION',
+    requestedAt: new Date().toISOString().split('T')[0], // Default to today
   })
 
   // Load projects and vehicles on component mount
@@ -128,18 +137,16 @@ export default function CustomerProjects() {
 
     setSubmitting(true)
     try {      
-      const requestData: CreateProjectRequest = {
-        projectName: projectRequest.title.trim(),
+      const newProject = await createProjectRequest({
+        projectName: projectRequest.title,
         projectType: projectRequest.projectType,
-        description: projectRequest.description.trim(),
+        description: projectRequest.description,
         vehicleDetails: projectRequest.vehicle,
         priority: projectRequest.priority.toUpperCase() as 'LOW' | 'MEDIUM' | 'HIGH',
-        specialInstructions: `Budget: ${projectRequest.budget || 'Not specified'}`,
-      }
+        requestedAt: projectRequest.requestedAt,
+      })
       
-      console.log('Submitting project request:', requestData)
-      
-      await createProjectRequest(requestData)
+      console.log('✅ Project request submitted successfully:', newProject)
 
       toast({
         title: "Success",
@@ -151,9 +158,9 @@ export default function CustomerProjects() {
         title: '',
         vehicle: '',
         description: '',
-        budget: '',
         priority: 'medium',
         projectType: 'MODIFICATION',
+        requestedAt: new Date().toISOString().split('T')[0],
       })
       setIsRequestDialogOpen(false)
 
@@ -169,6 +176,105 @@ export default function CustomerProjects() {
       })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleEditProject = (project: ProjectRequest) => {
+    setSelectedProject(project)
+    // Populate the form with existing project data
+    setProjectRequest({
+      title: project.projectName,
+      vehicle: project.vehicleDetails,
+      description: project.description,
+      priority: project.priority.toLowerCase() as 'low' | 'medium' | 'high',
+      projectType: project.projectType as 'MODIFICATION' | 'CUSTOM_WORK' | 'UPGRADE' | 'REPAIR',
+      requestedAt: project.requestedAt || new Date().toISOString().split('T')[0],
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdateProject = async () => {
+    if (!selectedProject || !projectRequest.title || !projectRequest.vehicle || !projectRequest.description) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const requestData: Partial<CreateProjectRequest> = {
+        projectName: projectRequest.title.trim(),
+        projectType: projectRequest.projectType,
+        description: projectRequest.description.trim(),
+        vehicleDetails: projectRequest.vehicle,
+        priority: projectRequest.priority.toUpperCase() as 'LOW' | 'MEDIUM' | 'HIGH',
+        requestedAt: projectRequest.requestedAt,
+      }
+
+      console.log('🔄 Updating project:', selectedProject.id, 'with data:', requestData)
+
+      const updatedProject = await updateProjectRequest(selectedProject.id, requestData)
+      console.log('✅ Project updated successfully:', updatedProject)
+
+      toast({
+        title: "Success",
+        description: "Project request updated successfully!",
+      })
+
+      // Reset form and close dialog
+      setProjectRequest({
+        title: '',
+        vehicle: '',
+        description: '',
+        priority: 'medium',
+        projectType: 'MODIFICATION',
+        requestedAt: new Date().toISOString().split('T')[0],
+      })
+      setSelectedProject(null)
+      setIsEditDialogOpen(false)
+
+      // Refresh projects list
+      console.log('🔄 Refreshing projects list...')
+      const updatedProjects = await getCustomerProjects()
+      console.log('✅ Projects refreshed:', updatedProjects)
+      setProjects(updatedProjects || [])
+    } catch (error) {
+      console.error('Failed to update project request:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update project request. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteProject = async (projectId: number) => {
+    setDeleting(projectId)
+    try {
+      await deleteProjectRequest(projectId)
+
+      toast({
+        title: "Success",
+        description: "Project request deleted successfully!",
+      })
+
+      // Refresh projects list
+      const updatedProjects = await getCustomerProjects()
+      setProjects(updatedProjects || [])
+    } catch (error) {
+      console.error('Failed to delete project request:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete project request. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -293,21 +399,13 @@ export default function CustomerProjects() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="budget">Budget Range</Label>
-                  <Select
-                    onValueChange={value => setProjectRequest({ ...projectRequest, budget: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select budget" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="under-500">Under $500</SelectItem>
-                      <SelectItem value="500-1000">$500 - $1,000</SelectItem>
-                      <SelectItem value="1000-2500">$1,000 - $2,500</SelectItem>
-                      <SelectItem value="2500-5000">$2,500 - $5,000</SelectItem>
-                      <SelectItem value="over-5000">Over $5,000</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="requestDate">Request Date</Label>
+                  <Input
+                    id="requestDate"
+                    type="date"
+                    value={projectRequest.requestedAt}
+                    onChange={e => setProjectRequest({ ...projectRequest, requestedAt: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="priority">Priority</Label>
@@ -346,6 +444,136 @@ export default function CustomerProjects() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Project Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Project Request</DialogTitle>
+              <DialogDescription>
+                Update your project request details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Project Title</Label>
+                <Input
+                  id="edit-title"
+                  value={projectRequest.title}
+                  onChange={e => setProjectRequest({ ...projectRequest, title: e.target.value })}
+                  placeholder="e.g., Custom Exhaust System"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-vehicle">Select Vehicle</Label>
+                <Select
+                  value={projectRequest.vehicle}
+                  onValueChange={value => setProjectRequest({ ...projectRequest, vehicle: value })}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loading ? "Loading vehicles..." : "Choose your vehicle"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loading ? (
+                      <SelectItem value="" disabled>
+                        Loading vehicles...
+                      </SelectItem>
+                    ) : vehicles.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No vehicles registered
+                      </SelectItem>
+                    ) : (
+                      vehicles.map(vehicle => (
+                        <SelectItem 
+                          key={vehicle.id} 
+                          value={`${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ''}`}
+                        >
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                          {vehicle.plateNumber && ` (${vehicle.plateNumber})`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-projectType">Project Type</Label>
+                <Select
+                  value={projectRequest.projectType}
+                  onValueChange={value => setProjectRequest({ ...projectRequest, projectType: value as ProjectRequestForm['projectType'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select project type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MODIFICATION">Modification</SelectItem>
+                    <SelectItem value="CUSTOM_WORK">Custom Work</SelectItem>
+                    <SelectItem value="UPGRADE">Upgrade</SelectItem>
+                    <SelectItem value="REPAIR">Repair</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Project Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={projectRequest.description}
+                  onChange={e =>
+                    setProjectRequest({ ...projectRequest, description: e.target.value })
+                  }
+                  placeholder="Describe your project requirements in detail..."
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-requestDate">Request Date</Label>
+                  <Input
+                    id="edit-requestDate"
+                    type="date"
+                    value={projectRequest.requestedAt}
+                    onChange={e => setProjectRequest({ ...projectRequest, requestedAt: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Select
+                    value={projectRequest.priority}
+                    onValueChange={value =>
+                      setProjectRequest({ ...projectRequest, priority: value.toLowerCase() as ProjectRequestForm['priority'] })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateProject} disabled={submitting} className="bg-primary hover:bg-primary/90">
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Project'
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-6">
@@ -374,9 +602,32 @@ export default function CustomerProjects() {
                     <CardTitle className="text-xl">{project.projectName}</CardTitle>
                     <CardDescription>{project.vehicleDetails}</CardDescription>
                   </div>
-                  <Badge variant={getStatusVariant(project.status)}>
-                    {formatStatus(project.status)}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={getStatusVariant(project.status)}>
+                      {formatStatus(project.status)}
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleEditProject(project)}
+                      className="h-8 px-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDeleteProject(project.id)}
+                      disabled={deleting === project.id}
+                      className="h-8 px-2 text-destructive hover:text-destructive"
+                    >
+                      {deleting === project.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -393,14 +644,16 @@ export default function CustomerProjects() {
                     <p className="text-sm text-muted-foreground">Request Date</p>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      <p className="font-medium">{project.requestDate || 'Not set'}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Estimated Cost</p>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      <p className="font-medium">${project.estimatedCost || 'TBD'}</p>
+                      <p className="font-medium">
+                        {project.requestedAt 
+                          ? new Date(project.requestedAt).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })
+                          : 'Not set'
+                        }
+                      </p>
                     </div>
                   </div>
                 </div>
