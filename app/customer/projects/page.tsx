@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,65 +23,183 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Calendar, Clock, DollarSign, User } from 'lucide-react'
+import { Plus, Calendar, Clock, DollarSign, User, Loader2 } from 'lucide-react'
+import { createProjectRequest, getCustomerProjects } from '@/lib/projects'
+import { listVehicles } from '@/lib/vehicles'
+import type { ProjectRequest, CreateProjectRequest } from '@/types/project'
+import type { Vehicle } from '@/types/vehicle'
+import { useToast } from '@/hooks/use-toast'
 
-const projects = [
-  {
-    id: 1,
-    title: 'Custom Exhaust System',
-    vehicle: '2020 BMW M3',
-    status: 'In Progress',
-    progress: 65,
-    startDate: '2024-01-15',
-    estimatedCompletion: '2024-02-01',
-    cost: '$2,500',
-    technician: 'Mike Johnson',
-  },
-  {
-    id: 2,
-    title: 'Performance Tune',
-    vehicle: '2019 Audi RS6',
-    status: 'Completed',
-    progress: 100,
-    startDate: '2024-01-10',
-    estimatedCompletion: '2024-01-20',
-    cost: '$1,800',
-    technician: 'Sarah Wilson',
-  },
-  {
-    id: 3,
-    title: 'Suspension Upgrade',
-    vehicle: '2021 Porsche 911',
-    status: 'Pending',
-    progress: 0,
-    startDate: '2024-02-05',
-    estimatedCompletion: '2024-02-15',
-    cost: '$3,200',
-    technician: 'Alex Chen',
-  },
-]
+// Form state type
+interface ProjectRequestForm {
+  title: string;
+  vehicle: string;
+  description: string;
+  budget: string;
+  priority: 'low' | 'medium' | 'high';
+  projectType: 'MODIFICATION' | 'CUSTOM_WORK' | 'UPGRADE' | 'REPAIR';
+}
 
 export default function CustomerProjects() {
+  const { toast } = useToast()
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
-  const [projectRequest, setProjectRequest] = useState({
+  const [projects, setProjects] = useState<ProjectRequest[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [projectRequest, setProjectRequest] = useState<ProjectRequestForm>({
     title: '',
     vehicle: '',
     description: '',
     budget: '',
-    priority: '',
+    priority: 'medium',
+    projectType: 'MODIFICATION',
   })
 
-  const handleRequestProject = () => {
-    console.log('[v0] Project requested:', projectRequest)
-    // TODO: Submit project request to backend
-    setProjectRequest({
-      title: '',
-      vehicle: '',
-      description: '',
-      budget: '',
-      priority: '',
-    })
-    setIsRequestDialogOpen(false)
+  // Load projects and vehicles on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [projectsData, vehiclesData] = await Promise.all([
+          getCustomerProjects(),
+          listVehicles()
+        ])
+        
+        console.log('Projects data received:', projectsData)
+        setProjects(projectsData || [])
+        
+        // Debug: Log the vehicles data
+        console.log('Vehicles data received:', vehiclesData)
+        
+        // Handle different response formats from vehicles API
+        if (vehiclesData?.items) {
+          console.log('Setting vehicles from items:', vehiclesData.items)
+          setVehicles(vehiclesData.items)
+        } else if (Array.isArray(vehiclesData)) {
+          console.log('Setting vehicles from array:', vehiclesData)
+          setVehicles(vehiclesData)
+        } else {
+          console.log('No vehicles found or unexpected format:', vehiclesData)
+          setVehicles([])
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error)
+        
+        // Only show error for vehicles since projects might not be implemented yet
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        if (errorMessage && !errorMessage.includes('project')) {
+          toast({
+            title: "Error",
+            description: "Failed to load vehicles",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [toast])
+
+  const handleRequestProject = async () => {
+    if (!projectRequest.title || !projectRequest.vehicle || !projectRequest.description) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Find selected vehicle ID
+    const selectedVehicle = vehicles.find(v => 
+      `${v.year} ${v.make} ${v.model}${v.plateNumber ? ` (${v.plateNumber})` : ''}` === projectRequest.vehicle
+    )
+
+    if (!selectedVehicle?.id) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a valid vehicle",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSubmitting(true)
+    try {      
+      const requestData: CreateProjectRequest = {
+        projectName: projectRequest.title.trim(),
+        projectType: projectRequest.projectType,
+        description: projectRequest.description.trim(),
+        vehicleDetails: projectRequest.vehicle,
+        priority: projectRequest.priority.toUpperCase() as 'LOW' | 'MEDIUM' | 'HIGH',
+        specialInstructions: `Budget: ${projectRequest.budget || 'Not specified'}`,
+      }
+      
+      console.log('Submitting project request:', requestData)
+      
+      await createProjectRequest(requestData)
+
+      toast({
+        title: "Success",
+        description: "Project request submitted successfully! We'll review it shortly.",
+      })
+
+      // Reset form and close dialog
+      setProjectRequest({
+        title: '',
+        vehicle: '',
+        description: '',
+        budget: '',
+        priority: 'medium',
+        projectType: 'MODIFICATION',
+      })
+      setIsRequestDialogOpen(false)
+
+      // Refresh projects list
+      const updatedProjects = await getCustomerProjects()
+      setProjects(updatedProjects || [])
+    } catch (error) {
+      console.error('Failed to submit project request:', error)
+      toast({
+        title: "Error",
+        description: "Failed to submit project request. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'COMPLETED': return 'default'
+      case 'IN_PROGRESS': return 'secondary'
+      case 'APPROVED': return 'outline'
+      case 'PENDING': return 'outline'
+      default: return 'outline'
+    }
+  }
+
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case 'IN_PROGRESS': return 'In Progress'
+      case 'COMPLETED': return 'Completed'
+      case 'APPROVED': return 'Approved'
+      case 'PENDING': return 'Pending'
+      case 'CANCELLED': return 'Cancelled'
+      default: return status
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading projects...</span>
+      </div>
+    )
   }
 
   return (
@@ -116,13 +234,48 @@ export default function CustomerProjects() {
                 <Label htmlFor="vehicle">Select Vehicle</Label>
                 <Select
                   onValueChange={value => setProjectRequest({ ...projectRequest, vehicle: value })}
+                  disabled={loading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose your vehicle" />
+                    <SelectValue placeholder={loading ? "Loading vehicles..." : "Choose your vehicle"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="2020 Toyota Camry">2020 Toyota Camry (ABC-1234)</SelectItem>
-                    <SelectItem value="2019 Honda Civic">2019 Honda Civic (XYZ-5678)</SelectItem>
+                    {loading ? (
+                      <SelectItem value="" disabled>
+                        Loading vehicles...
+                      </SelectItem>
+                    ) : vehicles.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        No vehicles registered
+                      </SelectItem>
+                    ) : (
+                      vehicles.map(vehicle => (
+                        <SelectItem 
+                          key={vehicle.id} 
+                          value={`${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ''}`}
+                        >
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                          {vehicle.plateNumber && ` (${vehicle.plateNumber})`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="projectType">Project Type</Label>
+                <Select
+                  value={projectRequest.projectType}
+                  onValueChange={value => setProjectRequest({ ...projectRequest, projectType: value as ProjectRequestForm['projectType'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select project type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MODIFICATION">Modification</SelectItem>
+                    <SelectItem value="CUSTOM_WORK">Custom Work</SelectItem>
+                    <SelectItem value="UPGRADE">Upgrade</SelectItem>
+                    <SelectItem value="REPAIR">Repair</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -160,7 +313,7 @@ export default function CustomerProjects() {
                   <Label htmlFor="priority">Priority</Label>
                   <Select
                     onValueChange={value =>
-                      setProjectRequest({ ...projectRequest, priority: value })
+                      setProjectRequest({ ...projectRequest, priority: value.toLowerCase() as ProjectRequestForm['priority'] })
                     }
                   >
                     <SelectTrigger>
@@ -180,8 +333,15 @@ export default function CustomerProjects() {
               <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleRequestProject} className="bg-primary hover:bg-primary/90">
-                Submit Request
+              <Button onClick={handleRequestProject} disabled={submitting} className="bg-primary hover:bg-primary/90">
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Request'
+                )}
               </Button>
             </div>
           </DialogContent>
@@ -189,69 +349,77 @@ export default function CustomerProjects() {
       </div>
 
       <div className="grid gap-6">
-        {projects.map(project => (
-          <Card key={project.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">{project.title}</CardTitle>
-                  <CardDescription>{project.vehicle}</CardDescription>
-                </div>
-                <Badge
-                  variant={
-                    project.status === 'Completed'
-                      ? 'default'
-                      : project.status === 'In Progress'
-                        ? 'secondary'
-                        : 'outline'
-                  }
-                >
-                  {project.status}
-                </Badge>
+        {projects.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Plus className="h-12 w-12 text-muted-foreground" />
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progress</span>
-                  <span>{project.progress}%</span>
-                </div>
-                <Progress value={project.progress} className="h-2" />
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-muted-foreground">Start Date</p>
-                    <p className="font-medium">{project.startDate}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-muted-foreground">Est. Completion</p>
-                    <p className="font-medium">{project.estimatedCompletion}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-muted-foreground">Cost</p>
-                    <p className="font-medium">{project.cost}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-muted-foreground">Technician</p>
-                    <p className="font-medium">{project.technician}</p>
-                  </div>
-                </div>
-              </div>
+              <h3 className="text-lg font-semibold mb-2">No Project Requests Yet</h3>
+              <p className="text-muted-foreground mb-4">
+                You haven't submitted any custom project requests. Start by requesting your first project modification.
+              </p>
+              <Button onClick={() => setIsRequestDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Request Your First Project
+              </Button>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          projects.map(project => (
+            <Card key={project.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{project.projectName}</CardTitle>
+                    <CardDescription>{project.vehicleDetails}</CardDescription>
+                  </div>
+                  <Badge variant={getStatusVariant(project.status)}>
+                    {formatStatus(project.status)}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Project Type</p>
+                    <p className="font-medium">{project.projectType}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Priority</p>
+                    <Badge variant="outline">{project.priority}</Badge>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Request Date</p>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <p className="font-medium">{project.requestDate || 'Not set'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Estimated Cost</p>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      <p className="font-medium">${project.estimatedCost || 'TBD'}</p>
+                    </div>
+                  </div>
+                </div>
+                {project.description && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Description</p>
+                    <p className="text-sm">{project.description}</p>
+                  </div>
+                )}
+                {project.specialInstructions && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Special Instructions</p>
+                    <p className="text-sm">{project.specialInstructions}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )

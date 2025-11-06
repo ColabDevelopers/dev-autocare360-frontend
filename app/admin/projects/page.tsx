@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,88 +29,134 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react'
-
-const projects = [
-  {
-    id: 1,
-    title: 'Engine Rebuild - Honda Civic',
-    customer: 'John Doe',
-    assignedTo: 'Mike Johnson',
-    status: 'in_progress',
-    priority: 'high',
-    progress: 65,
-    startDate: '2024-01-10',
-    dueDate: '2024-01-20',
-    estimatedHours: 40,
-    actualHours: 26,
-    avatar: '/placeholder.svg?height=32&width=32',
-  },
-  {
-    id: 2,
-    title: 'Transmission Service - Toyota Camry',
-    customer: 'Sarah Smith',
-    assignedTo: 'John Smith',
-    status: 'pending',
-    priority: 'medium',
-    progress: 0,
-    startDate: '2024-01-15',
-    dueDate: '2024-01-18',
-    estimatedHours: 8,
-    actualHours: 0,
-    avatar: '/placeholder.svg?height=32&width=32',
-  },
-  {
-    id: 3,
-    title: 'Complete Brake System Overhaul',
-    customer: 'Mike Wilson',
-    assignedTo: 'Sarah Johnson',
-    status: 'completed',
-    priority: 'high',
-    progress: 100,
-    startDate: '2024-01-08',
-    dueDate: '2024-01-12',
-    estimatedHours: 12,
-    actualHours: 14,
-    avatar: '/placeholder.svg?height=32&width=32',
-  },
-]
+import { getAllProjects, updateProjectStatus, approveProject } from '@/lib/projects'
+import { ProjectResponse } from '@/types/project'
+import { useToast } from '@/hooks/use-toast'
 
 export default function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [projects, setProjects] = useState<ProjectResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState<number | null>(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    fetchProjects()
+  }, [])
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true)
+      const response = await getAllProjects()
+      setProjects(response)
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch projects',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleApproveProject = async (projectId: number) => {
+    try {
+      setUpdating(projectId)
+      await approveProject(projectId)
+      await fetchProjects() // Refresh the list
+      toast({
+        title: 'Success',
+        description: 'Project approved successfully',
+      })
+    } catch (error) {
+      console.error('Error approving project:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to approve project',
+        variant: 'destructive',
+      })
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const handleUpdateStatus = async (projectId: number, status: ProjectResponse['status']) => {
+    try {
+      setUpdating(projectId)
+      await updateProjectStatus(projectId, { status })
+      await fetchProjects() // Refresh the list
+      toast({
+        title: 'Success',
+        description: 'Project status updated successfully',
+      })
+    } catch (error) {
+      console.error('Error updating project status:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update project status',
+        variant: 'destructive',
+      })
+    } finally {
+      setUpdating(null)
+    }
+  }
 
   const filteredProjects = projects.filter(
     project =>
-      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.assignedTo.toLowerCase().includes(searchTerm.toLowerCase())
+      project.service?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.technician?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const getStatusBadge = (status: string) => {
+  // Calculate stats
+  const activeProjects = projects.filter(p => p.status === 'APPROVED' || p.status === 'IN_PROGRESS').length
+  const inProgressProjects = projects.filter(p => p.status === 'IN_PROGRESS').length
+  const completedThisWeek = projects.filter(p => {
+    if (p.status !== 'COMPLETED' || !p.updatedAt) return false
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    return new Date(p.updatedAt) > weekAgo
+  }).length
+  const overdueProjects = projects.filter(p => {
+    if (!p.dueDate || p.status === 'COMPLETED') return false
+    return new Date(p.dueDate) < new Date()
+  }).length
+
+  const getStatusBadge = (status: ProjectResponse['status']) => {
     switch (status) {
-      case 'completed':
+      case 'COMPLETED':
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case 'in_progress':
+      case 'IN_PROGRESS':
         return <Badge variant="default">In Progress</Badge>
-      case 'pending':
+      case 'APPROVED':
+        return <Badge className="bg-blue-100 text-blue-800">Approved</Badge>
+      case 'PENDING':
         return <Badge variant="outline">Pending</Badge>
-      case 'on_hold':
-        return <Badge variant="secondary">On Hold</Badge>
+      case 'CANCELLED':
+        return <Badge variant="secondary">Cancelled</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
   }
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <Badge variant="destructive">High</Badge>
-      case 'medium':
-        return <Badge variant="secondary">Medium</Badge>
-      case 'low':
-        return <Badge variant="outline">Low</Badge>
+  const getStatusColor = (status: ProjectResponse['status']) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'text-green-600'
+      case 'IN_PROGRESS':
+        return 'text-blue-600'
+      case 'APPROVED':
+        return 'text-purple-600'
+      case 'PENDING':
+        return 'text-yellow-600'
+      case 'CANCELLED':
+        return 'text-red-600'
       default:
-        return <Badge variant="outline">{priority}</Badge>
+        return 'text-gray-600'
     }
   }
 
@@ -134,8 +180,10 @@ export default function ProjectsPage() {
             <FolderOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">3 high priority</p>
+            <div className="text-2xl font-bold">{activeProjects}</div>
+            <p className="text-xs text-muted-foreground">
+              {projects.filter(p => p.status === 'PENDING').length} pending approval
+            </p>
           </CardContent>
         </Card>
 
@@ -145,7 +193,7 @@ export default function ProjectsPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{inProgressProjects}</div>
             <p className="text-xs text-muted-foreground">Currently being worked on</p>
           </CardContent>
         </Card>
@@ -156,8 +204,8 @@ export default function ProjectsPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+4 from last week</p>
+            <div className="text-2xl font-bold">{completedThisWeek}</div>
+            <p className="text-xs text-muted-foreground">From last 7 days</p>
           </CardContent>
         </Card>
 
@@ -167,7 +215,7 @@ export default function ProjectsPage() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
+            <div className="text-2xl font-bold">{overdueProjects}</div>
             <p className="text-xs text-muted-foreground">Need immediate attention</p>
           </CardContent>
         </Card>
@@ -197,67 +245,106 @@ export default function ProjectsPage() {
                 <TableHead>Customer</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
                 <TableHead>Progress</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProjects.map(project => (
-                <TableRow key={project.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{project.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {project.estimatedHours}h estimated • {project.actualHours}h actual
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={project.avatar || '/placeholder.svg'} />
-                        <AvatarFallback className="text-xs">
-                          {project.customer
-                            .split(' ')
-                            .map(n => n[0])
-                            .join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{project.customer}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{project.assignedTo}</TableCell>
-                  <TableCell>{getStatusBadge(project.status)}</TableCell>
-                  <TableCell>{getPriorityBadge(project.priority)}</TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <Progress value={project.progress} className="h-2" />
-                      <span className="text-xs text-muted-foreground">{project.progress}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{project.dueDate}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                        <DropdownMenuItem>Update Progress</DropdownMenuItem>
-                        <DropdownMenuItem>Assign Employee</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Archive Project
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    <p>Loading projects...</p>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredProjects.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <p>No projects found</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredProjects.map(project => (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{project.service}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {project.estimatedHours || 0}h estimated • {project.actualHours || 0}h actual
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src="/placeholder.svg" />
+                          <AvatarFallback className="text-xs">
+                            {project.customerName
+                              ? project.customerName
+                                  .split(' ')
+                                  .map((n: string) => n[0])
+                                  .join('')
+                              : 'CU'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{project.customerName || 'Unknown Customer'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{project.technician || 'Unassigned'}</TableCell>
+                    <TableCell>{getStatusBadge(project.status)}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Progress value={project.progress || 0} className="h-2" />
+                        <span className="text-xs text-muted-foreground">{project.progress || 0}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{project.dueDate || 'Not set'}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            className="h-8 w-8 p-0"
+                            disabled={updating === project.id}
+                          >
+                            {updating === project.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <MoreHorizontal className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>View Details</DropdownMenuItem>
+                          {project.status === 'PENDING' && (
+                            <DropdownMenuItem onClick={() => handleApproveProject(project.id)}>
+                              Approve Project
+                            </DropdownMenuItem>
+                          )}
+                          {project.status === 'APPROVED' && (
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(project.id, 'IN_PROGRESS')}>
+                              Start Project
+                            </DropdownMenuItem>
+                          )}
+                          {project.status === 'IN_PROGRESS' && (
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(project.id, 'COMPLETED')}>
+                              Mark Complete
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem>Assign Employee</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => handleUpdateStatus(project.id, 'CANCELLED')}
+                          >
+                            Cancel Project
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
