@@ -50,6 +50,8 @@ export default function CustomerProjects() {
   const { toast } = useToast()
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<ProjectRequest | null>(null)
   const [selectedProject, setSelectedProject] = useState<ProjectRequest | null>(null)
   const [projects, setProjects] = useState<ProjectRequest[]>([])
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
@@ -181,12 +183,26 @@ export default function CustomerProjects() {
 
   const handleEditProject = (project: ProjectRequest) => {
     setSelectedProject(project)
+    
+    console.log('🔍 Editing project:', {
+      priority: project.priority,
+      projectType: project.projectType,
+      fullProject: project
+    })
+    
+    // Normalize priority to ensure it matches our form options
+    let normalizedPriority: 'low' | 'medium' | 'high' = 'medium'
+    const priorityLower = project.priority.toLowerCase()
+    if (['low', 'medium', 'high', 'urgent'].includes(priorityLower)) {
+      normalizedPriority = priorityLower === 'urgent' ? 'high' : priorityLower as 'low' | 'medium' | 'high'
+    }
+    
     // Populate the form with existing project data
     setProjectRequest({
       title: project.projectName,
       vehicle: project.vehicleDetails,
       description: project.description,
-      priority: project.priority.toLowerCase() as 'low' | 'medium' | 'high',
+      priority: normalizedPriority,
       projectType: project.projectType as 'MODIFICATION' | 'CUSTOM_WORK' | 'UPGRADE' | 'REPAIR',
       requestedAt: project.requestedAt || new Date().toISOString().split('T')[0],
     })
@@ -254,6 +270,31 @@ export default function CustomerProjects() {
   }
 
   const handleDeleteProject = async (projectId: number) => {
+    console.log('🗑️ Attempting to delete project request:', projectId);
+    
+    // Debug: Check current user's token and role
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('🔍 Current user info:', { 
+          userId: payload.sub, 
+          roles: payload.roles || payload.authorities,
+          allPayload: payload, // Show complete token payload for debugging
+          exp: payload.exp 
+        });
+        
+        // Log individual role values for easier debugging
+        const roles = payload.roles || payload.authorities || [];
+        console.log('🎭 User roles breakdown:', roles);
+        roles.forEach((role: any, index: number) => {
+          console.log(`🎭 Role ${index + 1}:`, typeof role, role);
+        });
+      } catch (e) {
+        console.log('⚠️ Could not parse token for debugging');
+      }
+    }
+
     setDeleting(projectId)
     try {
       await deleteProjectRequest(projectId)
@@ -268,13 +309,30 @@ export default function CustomerProjects() {
       setProjects(updatedProjects || [])
     } catch (error) {
       console.error('Failed to delete project request:', error)
+      
+      // More specific error handling
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
       toast({
         title: "Error",
-        description: "Failed to delete project request. Please try again.",
+        description: `Failed to delete project request: ${errorMessage}`,
         variant: "destructive",
       })
     } finally {
       setDeleting(null)
+      setIsDeleteDialogOpen(false)
+      setProjectToDelete(null)
+    }
+  }
+
+  const handleDeleteClick = (project: ProjectRequest) => {
+    setProjectToDelete(project)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (projectToDelete) {
+      handleDeleteProject(projectToDelete.id)
     }
   }
 
@@ -405,6 +463,7 @@ export default function CustomerProjects() {
                     type="date"
                     value={projectRequest.requestedAt}
                     onChange={e => setProjectRequest({ ...projectRequest, requestedAt: e.target.value })}
+                    className="[&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   />
                 </div>
                 <div className="space-y-2">
@@ -467,6 +526,7 @@ export default function CustomerProjects() {
               <div className="space-y-2">
                 <Label htmlFor="edit-vehicle">Select Vehicle</Label>
                 <Select
+                  key={`vehicle-${selectedProject?.id}`}
                   value={projectRequest.vehicle}
                   onValueChange={value => setProjectRequest({ ...projectRequest, vehicle: value })}
                   disabled={loading}
@@ -500,6 +560,7 @@ export default function CustomerProjects() {
               <div className="space-y-2">
                 <Label htmlFor="edit-projectType">Project Type</Label>
                 <Select
+                  key={`projectType-${selectedProject?.id}`}
                   value={projectRequest.projectType}
                   onValueChange={value => setProjectRequest({ ...projectRequest, projectType: value as ProjectRequestForm['projectType'] })}
                 >
@@ -534,14 +595,16 @@ export default function CustomerProjects() {
                     type="date"
                     value={projectRequest.requestedAt}
                     onChange={e => setProjectRequest({ ...projectRequest, requestedAt: e.target.value })}
+                    className="[&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-priority">Priority</Label>
                   <Select
+                    key={`priority-${selectedProject?.id}`}
                     value={projectRequest.priority}
                     onValueChange={value =>
-                      setProjectRequest({ ...projectRequest, priority: value.toLowerCase() as ProjectRequestForm['priority'] })
+                      setProjectRequest({ ...projectRequest, priority: value as ProjectRequestForm['priority'] })
                     }
                   >
                     <SelectTrigger>
@@ -551,7 +614,6 @@ export default function CustomerProjects() {
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -606,27 +668,41 @@ export default function CustomerProjects() {
                     <Badge variant={getStatusVariant(project.status)}>
                       {formatStatus(project.status)}
                     </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleEditProject(project)}
-                      className="h-8 px-2"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleDeleteProject(project.id)}
-                      disabled={deleting === project.id}
-                      className="h-8 px-2 text-destructive hover:text-destructive"
-                    >
-                      {deleting === project.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </Button>
+                    {/* Only show edit/delete actions for PENDING projects */}
+                    {project.status === 'PENDING' ? (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleEditProject(project)}
+                          className="h-8 px-2"
+                          title="Edit this project request"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDeleteClick(project)}
+                          disabled={deleting === project.id}
+                          className="h-8 px-2 text-destructive hover:text-destructive"
+                          title="Delete this project request"
+                        >
+                          {deleting === project.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                        {project.status === 'IN_PROGRESS' && 'Work in progress'}
+                        {project.status === 'COMPLETED' && 'Project completed'}
+                        {project.status === 'APPROVED' && 'Approved - pending start'}
+                        {project.status === 'CANCELLED' && 'Cancelled'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -656,6 +732,25 @@ export default function CustomerProjects() {
                       </p>
                     </div>
                   </div>
+                  {(project.estimatedCost || project.estimatedDurationDays) && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Estimate</p>
+                      <div className="flex items-center gap-2">
+                        {project.estimatedCost && (
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-4 w-4" />
+                            <p className="font-medium">${project.estimatedCost}</p>
+                          </div>
+                        )}
+                        {project.estimatedDurationDays && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            <p className="font-medium">{project.estimatedDurationDays} days</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {project.description && (
                   <div className="space-y-1">
@@ -674,6 +769,49 @@ export default function CustomerProjects() {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              
+              Delete Project Request
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this project request? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setProjectToDelete(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete}
+              disabled={!!deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
