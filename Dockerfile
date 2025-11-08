@@ -26,16 +26,21 @@ RUN addgroup --system nextjs && adduser --system nextjs --ingroup nextjs
 USER nextjs
 
 # Copy built application
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/next.config.mjs ./
 
-# Expose port
+# Optional: If you use environment variables, uncomment this line
+# ENV NODE_ENV=production
+
+USER nextjs
+
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
+# Health check (simplified and lightweight)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
+  CMD wget -qO- http://localhost:3000/ || exit 1
 
-# Start the application
 CMD ["pnpm", "start"]
