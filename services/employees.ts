@@ -53,4 +53,14 @@ export async function deleteEmployee(id: number): Promise<void> {
   await apiCall(`/admin/employees/${id}`, { method: 'DELETE' })
 }
 
+export async function checkEmployeeByEmail(email: string): Promise<EmployeeResponse | null> {
+  try {
+    const employees = await listEmployees()
+    return employees.find(emp => emp.email === email) || null
+  } catch (error) {
+    console.error('Error checking employee by email:', error)
+    return null
+  }
+}
+
 
