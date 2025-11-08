@@ -108,6 +108,8 @@ export async function getAllProjects(): Promise<ProjectResponse[]> {
       method: 'GET'
     })
     
+    console.log('🔍 getAllProjects API response:', response)
+    
     if (Array.isArray(response)) {
       return response as ProjectResponse[]
     }
