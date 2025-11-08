@@ -68,7 +68,7 @@ export default function EmployeeAppointments() {
           console.warn('Could not decode JWT:', decodeErr)
         }
         
-        const data = await apiCall('/employee/appointments', { method: 'GET' })
+        const data = await apiCall('/api/employee/appointments', { method: 'GET' })
         setAppointments(Array.isArray(data) ? data : [])
         console.log('Employee appointments loaded:', data?.length || 0, 'appointments')
       } catch (err: any) {
@@ -85,7 +85,7 @@ export default function EmployeeAppointments() {
   const handleStartService = async (appointmentId: number) => {
     try {
       console.log('Starting service for appointment:', appointmentId)
-      await apiCall(`/employee/appointments/${appointmentId}/start`, { method: 'PUT' })
+      await apiCall(`/api/employee/appointments/${appointmentId}/start`, { method: 'PUT' })
       
       // Update local state
       setAppointments(prev => 

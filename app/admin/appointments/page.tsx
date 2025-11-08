@@ -347,11 +347,11 @@ export default function AppointmentsPage() {
       if (isToday) {
         const now = new Date()
         const currentHour = now.getHours()
-        const currentMinute = now.getMinutes()
         
+        // Show times from next hour onwards (1-hour slots: 00:00, 01:00, 02:00, ...)
         times = times.filter((time: string) => {
-          const [hours, minutes] = time.split(':').map(Number)
-          return hours > currentHour || (hours === currentHour && minutes > currentMinute)
+          const [hours] = time.split(':').map(Number)
+          return hours > currentHour
         })
       }
       
@@ -892,7 +892,10 @@ export default function AppointmentsPage() {
                     disabled={date => {
                       const today = new Date()
                       today.setHours(0, 0, 0, 0)
-                      return date < today
+                      const checkDate = new Date(date)
+                      checkDate.setHours(0, 0, 0, 0)
+                      // Allow today and future dates
+                      return checkDate < today
                     }}
                     className="rounded-md border"
                   />
