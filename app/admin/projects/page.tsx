@@ -256,7 +256,7 @@ export default function ProjectsPage() {
       
       toast({
         title: 'Success',
-        description: 'Employee assigned successfully and added to employee records',
+        description: `Employee assigned successfully! ${selectedEmployee?.name} can now view this project in their dashboard.`,
       })
       setIsAssignEmployeeOpen(false)
       setSelectedProject(null)

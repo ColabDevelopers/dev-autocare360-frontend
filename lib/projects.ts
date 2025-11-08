@@ -134,15 +134,98 @@ export async function getAllProjects(): Promise<ProjectResponse[]> {
 
 // Get employee assigned projects
 export async function getEmployeeProjects(): Promise<ProjectResponse[]> {
-  const response = await apiCall('/api/project-requests/assigned', {
-    method: 'GET'
-  })
-  
-  if (Array.isArray(response)) {
-    return response as ProjectResponse[]
+  try {
+    console.log('🔍 Fetching employee assigned projects...')
+    const response = await apiCall('/api/project-requests/assigned', {
+      method: 'GET'
+    })
+    
+    console.log('📦 Employee projects API response:', response)
+    
+    // Handle array response
+    if (Array.isArray(response)) {
+      console.log(`✅ Found ${response.length} assigned projects`)
+      return response as ProjectResponse[]
+    }
+    
+    // Handle paginated response with items
+    if (response?.items && Array.isArray(response.items)) {
+      console.log(`✅ Found ${response.items.length} assigned projects in paginated response`)
+      return response.items as ProjectResponse[]
+    }
+    
+    // Handle case where response has data property
+    if (response?.data && Array.isArray(response.data)) {
+      console.log(`✅ Found ${response.data.length} assigned projects in data property`)
+      return response.data as ProjectResponse[]
+    }
+    
+    console.log('⚠️ No projects found in response structure')
+    return []
+  } catch (error: any) {
+    console.error('❌ Error fetching employee projects:', error)
+    
+    // If endpoint doesn't exist yet or user doesn't have access, try fallback
+    if (error.message?.includes('403') || error.message?.includes('404') || error.message?.includes('401')) {
+      console.log('� Primary endpoint failed, trying fallback approach...')
+      return await getEmployeeProjectsFallback()
+    }
+    
+    // Re-throw other errors for proper error handling
+    throw error
   }
-  
-  return []
+}
+
+// Fallback method to get employee projects by filtering all projects
+export async function getEmployeeProjectsFallback(): Promise<ProjectResponse[]> {
+  try {
+    console.log('🔄 Using fallback method to get employee projects...')
+    
+    // Get current user info from token
+    let currentUserId: number | null = null
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken')
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          currentUserId = payload.id || payload.userId || payload.sub
+          console.log('👤 Current user ID from token:', currentUserId)
+        } catch (e) {
+          console.log('❌ Could not decode token for user ID')
+        }
+      }
+    }
+    
+    // Get all projects and filter manually
+    const allProjects = await getAllProjects()
+    console.log('📊 All projects fetched for filtering:', allProjects.length)
+    
+    // Filter projects assigned to current user
+    const assignedProjects = allProjects.filter(project => {
+      const isAssigned = 
+        (project as any).assignedEmployeeId === currentUserId ||
+        project.technicianId === currentUserId ||
+        (project as any).assigned_employee_id === currentUserId
+      
+      if (isAssigned) {
+        console.log(`✅ Found assigned project:`, {
+          id: project.id,
+          service: project.service,
+          assignedEmployeeId: (project as any).assignedEmployeeId,
+          technicianId: project.technicianId
+        })
+      }
+      
+      return isAssigned
+    })
+    
+    console.log(`🎯 Found ${assignedProjects.length} projects assigned to user ${currentUserId}`)
+    return assignedProjects
+    
+  } catch (error) {
+    console.error('❌ Fallback method also failed:', error)
+    return []
+  }
 }
 
 // Update project status (admin/employee)
