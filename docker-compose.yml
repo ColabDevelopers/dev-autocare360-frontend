@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: autocare360-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - autocare360-network
+    restart: unless-stopped
+
+networks:
+  autocare360-network:
+    driver: bridge

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +29,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 import { API_CONFIG } from '@/lib/api'
+import { useVehicles } from '@/hooks/useVehicles'
+import { listTechnicians, EmployeeResponse } from '@/services/employees'
+import { apiCall } from '@/lib/api'
+import SockJS from 'sockjs-client'
+import { Client, IMessage, StompSubscription } from '@stomp/stompjs'
 
 // Appointment type used in the component
 interface Appointment {
@@ -48,33 +53,25 @@ interface Appointment {
 }
 
 interface Service {
-  id: string
-  name: string
-  duration: string
-  price: string
+  id: number;
+  name: string;
+  duration: number; // in hours
+  price: number;
+  type?: string; // category
 }
 
-const services: Service[] = [
-  { id: 'oil-change', name: 'Oil Change', duration: '30 min', price: '$45' },
-  { id: 'brake-service', name: 'Brake Service', duration: '2 hours', price: '$120' },
-  { id: 'tire-rotation', name: 'Tire Rotation', duration: '45 min', price: '$35' },
-  { id: 'ac-service', name: 'AC Service', duration: '1.5 hours', price: '$85' },
-  { id: 'transmission', name: 'Transmission Service', duration: '3 hours', price: '$200' },
-  { id: 'inspection', name: 'General Inspection', duration: '1 hour', price: '$60' },
-]
-
-const vehicles = [
-  { id: '1', name: '2020 Toyota Camry', plate: 'ABC-1234' },
-  { id: '2', name: '2019 Honda Civic', plate: 'XYZ-5678' },
-]
-
-const technicians = [
-  { id: 'tech-1', name: 'Alex Morgan' },
-  { id: 'tech-2', name: 'Priya Patel' },
-  { id: 'tech-3', name: 'Sam Lee' },
-]
-
 export default function AppointmentsPage() {
+  // Fetch user's vehicles dynamically
+  const { vehicles, loading: vehiclesLoading } = useVehicles()
+  
+  // State for employees/technicians
+  const [technicians, setTechnicians] = useState<EmployeeResponse[]>([])
+  const [techniciansLoading, setTechniciansLoading] = useState(true)
+  
+  // State for services
+  const [services, setServices] = useState<Service[]>([])
+  const [servicesLoading, setServicesLoading] = useState(true)
+  
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -94,18 +91,126 @@ export default function AppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null)
+  
+  // WebSocket refs
+  const stompClientRef = useRef<Client | null>(null)
+  const subscriptionRef = useRef<StompSubscription | null>(null)
 
   // Fetch appointments on load
   useEffect(() => {
     fetchAppointments()
+    
+    // Setup WebSocket connection for real-time appointment updates
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null
+    
+    if (token && userId) {
+      const socket = new SockJS(`${apiUrl}/ws`)
+      const client = new Client({
+        webSocketFactory: () => socket as any,
+        connectHeaders: { Authorization: `Bearer ${token}` },
+        debug: (str) => console.log('STOMP (Customer):', str),
+        onConnect: () => {
+          console.log('Customer websocket connected')
+          // Subscribe to user-specific appointment updates
+          subscriptionRef.current = client.subscribe(
+            `/user/${userId}/queue/appointment-updates`,
+            (msg: IMessage) => {
+              try {
+                const updatedAppointment = JSON.parse(msg.body)
+                console.log('Customer received appointment update:', updatedAppointment)
+                
+                // Update the appointment in the list
+                setAppointments(prev => 
+                  prev.map(apt => 
+                    apt.id === updatedAppointment.id 
+                      ? {
+                          ...apt,
+                          status: updatedAppointment.status,
+                          service: updatedAppointment.service,
+                          vehicle: updatedAppointment.vehicle,
+                          date: updatedAppointment.date,
+                          time: updatedAppointment.time?.toString?.().substring(0,5) ?? updatedAppointment.time,
+                          technician: updatedAppointment.technician,
+                          notes: updatedAppointment.notes,
+                        }
+                      : apt
+                  )
+                )
+              } catch (err) {
+                console.error('Failed to parse appointment update', err)
+              }
+            }
+          )
+        },
+        onStompError: (frame) => console.error('STOMP error (Customer)', frame),
+      })
+      client.activate()
+      stompClientRef.current = client
+    }
+
+    return () => {
+      if (subscriptionRef.current) subscriptionRef.current.unsubscribe()
+      if (stompClientRef.current) stompClientRef.current.deactivate()
+    }
+  }, [])
+
+  // Fetch employees/technicians on load
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      try {
+        console.log('🔍 Fetching technicians from /api/employees...')
+        setTechniciansLoading(true)
+        const employees = await listTechnicians()
+        console.log('Technicians loaded:', employees)
+        console.log('Number of technicians:', employees.length)
+        setTechnicians(employees)
+      } catch (err) {
+        console.error('Failed to load employees:', err)
+        setTechnicians([])
+      } finally {
+        setTechniciansLoading(false)
+        console.log('Technician loading complete')
+      }
+    }
+    fetchTechnicians()
+  }, [])
+
+  // Fetch services on load
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        console.log('Fetching services from /api/services...')
+        setServicesLoading(true)
+        const response = await apiCall('/api/services', { method: 'GET' })
+        console.log('Services response:', response)
+        
+        // Map the backend response to our Service type
+        const serviceList = response.items?.map((item: any) => ({
+          id: item.id,
+          name: item.name || 'Unknown Service',
+          duration: item.duration || 0, // duration in hours
+          price: item.price || 0,
+          type: item.type || 'General'
+        })) || []
+        
+        console.log('Services loaded:', serviceList.length, 'services')
+        setServices(serviceList)
+      } catch (err) {
+        console.error('Failed to load services:', err)
+        setServices([])
+      } finally {
+        setServicesLoading(false)
+      }
+    }
+    fetchServices()
   }, [])
 
   const fetchAppointments = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}/user/1`) // Using user ID 1 for demo
-      if (!res.ok) throw new Error('Failed to fetch appointments')
-      const data = await res.json()
+      const data = await apiCall(API_CONFIG.ENDPOINTS.APPOINTMENTS, { method: 'GET' })
       // Normalize time strings (strip seconds if present) so UI comparisons match availableTimes (HH:mm)
       const normalized = (data || []).map((a: any) => ({
         ...a,
@@ -120,6 +225,7 @@ export default function AppointmentsPage() {
       setAppointments(normalized)
     } catch (err) {
       setError('Failed to load appointments')
+      console.error('Error fetching appointments:', err)
     } finally {
       setLoading(false)
     }
@@ -137,13 +243,25 @@ export default function AppointmentsPage() {
       }
       const dateStr = formatDateLocal(date)
       const techParam = technician ? `&technician=${encodeURIComponent(technician)}` : ''
-      const res = await fetch(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AVAILABILITY}?date=${dateStr}${techParam}`
-      )
-      if (!res.ok) throw new Error('Failed to fetch availability')
-      const data = await res.json()
-      setAvailableTimes(data.timeSlots || []) // Use timeSlots from backend response
+      const data = await apiCall(`${API_CONFIG.ENDPOINTS.AVAILABILITY}?date=${dateStr}${techParam}`, { method: 'GET' })
+      let times = data.timeSlots || []
+      
+      // Filter out past times if selected date is today
+      const isToday = formatDateLocal(date) === formatDateLocal(new Date())
+      if (isToday) {
+        const now = new Date()
+        const currentHour = now.getHours()
+        const currentMinute = now.getMinutes()
+        
+        times = times.filter((time: string) => {
+          const [hours, minutes] = time.split(':').map(Number)
+          return hours > currentHour || (hours === currentHour && minutes > currentMinute)
+        })
+      }
+      
+      setAvailableTimes(times)
     } catch (err) {
+      console.error('Error fetching availability:', err)
       setAvailableTimes([])
     }
   }
@@ -163,9 +281,9 @@ export default function AppointmentsPage() {
         normalizedTime = normalizedTime + ':00'
       }
 
+      const selectedService = services.find(s => s.id === parseInt(bookingForm.service))
       const payload = {
-        userId: 1, // Using user ID 1 for demo
-        service: services.find(s => s.id === bookingForm.service)?.name || '',
+        service: selectedService?.name || '',
         vehicle: bookingForm.vehicle,
         date: normalizedDate,
         time: normalizedTime,
@@ -173,27 +291,19 @@ export default function AppointmentsPage() {
         notes: bookingForm.notes,
         technician: bookingForm.technician || null,
       }
-      const url =
-        isRescheduling && selectedAppointment
-          ? `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}/${selectedAppointment.id}`
-          : `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}`
-      const method = isRescheduling ? 'PUT' : 'POST'
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        // Try to read error message from response body
-        let msg = 'Failed to book appointment'
-        try {
-          const body = await res.text()
-          if (body) msg = body
-        } catch (e) {
-          // ignore
-        }
-        throw new Error(msg)
+      
+      if (isRescheduling && selectedAppointment) {
+        await apiCall(`${API_CONFIG.ENDPOINTS.APPOINTMENTS}/${selectedAppointment.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        })
+      } else {
+        await apiCall(API_CONFIG.ENDPOINTS.APPOINTMENTS, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        })
       }
+      
       await fetchAppointments() // Refresh list
       // show success message
       if (isRescheduling) {
@@ -202,7 +312,7 @@ export default function AppointmentsPage() {
         alert('Appointment booked successfully')
       }
       setBookingForm({ service: '', vehicle: '', date: '', time: '', technician: '', notes: '' })
-
+      
       setIsBookingDialogOpen(false)
       setIsRescheduling(false)
       setSelectedAppointment(null)
@@ -215,12 +325,10 @@ export default function AppointmentsPage() {
 
   const handleCancelAppointment = async (id: number) => {
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.APPOINTMENTS}/${id}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok) throw new Error('Failed to cancel')
+      await apiCall(`${API_CONFIG.ENDPOINTS.APPOINTMENTS}/${id}`, { method: 'DELETE' })
       setAppointments(appointments.filter(a => a.id !== id))
     } catch (err) {
+      console.error('Error canceling appointment:', err)
       alert('Failed to cancel appointment')
     }
   }
@@ -242,7 +350,7 @@ export default function AppointmentsPage() {
     setIsRescheduling(true)
     setSelectedAppointment(appointment)
     setBookingForm({
-      service: services.find(s => s.name === appointment.service)?.id || '',
+      service: String(services.find(s => s.name === appointment.service)?.id || ''),
       vehicle: appointment.vehicle,
       date: appointment.date,
       time: appointment.time,
@@ -266,14 +374,17 @@ export default function AppointmentsPage() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Confirmed':
+    const statusUpper = status?.toUpperCase()
+    switch (statusUpper) {
+      case 'CONFIRMED':
         return 'bg-green-500/10 text-green-500'
-      case 'Pending':
+      case 'PENDING':
         return 'bg-yellow-500/10 text-yellow-500'
-      case 'Completed':
+      case 'IN_PROGRESS':
         return 'bg-blue-500/10 text-blue-500'
-      case 'Cancelled':
+      case 'COMPLETED':
+        return 'bg-gray-500/10 text-gray-500'
+      case 'CANCELLED':
         return 'bg-red-500/10 text-red-500'
       default:
         return 'bg-gray-500/10 text-gray-500'
@@ -281,10 +392,10 @@ export default function AppointmentsPage() {
   }
 
   const upcomingAppointments = appointments.filter(
-    a => a.status !== 'Completed' && a.status !== 'Cancelled'
+    a => a.status?.toUpperCase() !== 'COMPLETED' && a.status?.toUpperCase() !== 'CANCELLED'
   )
   const pastAppointments = appointments.filter(
-    a => a.status === 'Completed' || a.status === 'Cancelled'
+    a => a.status?.toUpperCase() === 'COMPLETED' || a.status?.toUpperCase() === 'CANCELLED'
   )
 
   return (
@@ -322,10 +433,8 @@ export default function AppointmentsPage() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>
-                {isRescheduling ? 'Reschedule Appointment' : 'Book New Appointment'}
-              </DialogTitle>
+            <DialogHeader className="shrink-0">
+              <DialogTitle>{isRescheduling ? 'Reschedule Appointment' : 'Book New Appointment'}</DialogTitle>
               <DialogDescription>
                 {isRescheduling
                   ? 'Update your appointment details.'
@@ -341,7 +450,7 @@ export default function AppointmentsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {services.map(service => (
-                      <SelectItem key={service.id} value={service.id}>
+                      <SelectItem key={service.id} value={String(service.id)}>
                         <div className="flex justify-between w-full">
                           <span>{service.name}</span>
                           <span className="text-muted-foreground ml-4">{service.price}</span>
@@ -354,16 +463,29 @@ export default function AppointmentsPage() {
 
               <div className="space-y-2">
                 <Label>Select Vehicle</Label>
-                <Select onValueChange={value => setBookingForm({ ...bookingForm, vehicle: value })}>
+                <Select 
+                  onValueChange={value => setBookingForm({ ...bookingForm, vehicle: value })}
+                  disabled={vehiclesLoading || vehicles.length === 0}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose your vehicle" />
+                    <SelectValue placeholder={
+                      vehiclesLoading 
+                        ? "Loading vehicles..." 
+                        : vehicles.length === 0 
+                          ? "No vehicles available - Please add a vehicle first" 
+                          : "Choose your vehicle"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {vehicles.map(vehicle => (
-                      <SelectItem key={vehicle.id} value={vehicle.name}>
-                        {vehicle.name} ({vehicle.plate})
-                      </SelectItem>
-                    ))}
+                    {vehicles.map(vehicle => {
+                      const displayName = `${vehicle.year} ${vehicle.make} ${vehicle.model}`
+                      const plateInfo = vehicle.plateNumber ? ` (${vehicle.plateNumber})` : ''
+                      return (
+                        <SelectItem key={vehicle.id} value={displayName}>
+                          {displayName}{plateInfo}
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -371,7 +493,8 @@ export default function AppointmentsPage() {
               {/* Move technician selection right after vehicle */}
               <div className="space-y-2">
                 <Label>Assign Technician</Label>
-                <Select
+                <Select 
+                  disabled={techniciansLoading}
                   onValueChange={value => {
                     setBookingForm({ ...bookingForm, technician: value })
                     // If a date is already selected, refetch availability for this technician
@@ -387,14 +510,20 @@ export default function AppointmentsPage() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a technician" />
+                    <SelectValue placeholder={techniciansLoading ? "Loading technicians..." : "Choose a technician"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {technicians.map(t => (
-                      <SelectItem key={t.id} value={t.name}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
+                    {techniciansLoading ? (
+                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                    ) : technicians.length === 0 ? (
+                      <SelectItem value="no-technicians" disabled>No technicians available</SelectItem>
+                    ) : (
+                      technicians.map(t => (
+                        <SelectItem key={t.id} value={t.name}>
+                          {t.name} {t.employeeNo ? `(${t.employeeNo})` : ''}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -421,7 +550,11 @@ export default function AppointmentsPage() {
                         })
                         if (date) fetchAvailability(date, bookingForm.technician)
                       }}
-                      disabled={date => date < new Date()}
+                      disabled={date => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        return date < today
+                      }}
                       className="rounded-md border"
                     />
                   </div>
@@ -464,7 +597,7 @@ export default function AppointmentsPage() {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end space-x-2 flex-shrink-0 pt-4 border-t">
+            <div className="flex justify-end space-x-2 shrink-0 pt-4 border-t">
               <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)}>
                 Cancel
               </Button>
