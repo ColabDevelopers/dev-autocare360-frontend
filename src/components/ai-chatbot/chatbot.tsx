@@ -2,51 +2,43 @@
 
 import type React from 'react'
 
-import { useState } from 'react'
-// import { useChat } from "@ai-sdk/react"
-// import { DefaultChatTransport } from "ai"
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MessageCircle, Send, Bot, User, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface MockMessage {
+interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
 }
 
+const CHATBOT_API_URL = process.env.NEXT_PUBLIC_CHATBOT_API_URL || 'http://localhost:8000'
+
 export function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const [messages, setMessages] = useState<MockMessage[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const getMockResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase()
-
-    if (input.includes('appointment') || input.includes('available') || input.includes('book')) {
-      return 'I can help you check available appointment slots! Here are some options for this week:\n\n• Tomorrow 10:00 AM - Oil Change (Available)\n• Thursday 2:00 PM - Brake Service (Available)\n• Friday 9:00 AM - AC Service (Available)\n\nWould you like me to book one of these for you?'
-    }
-
-    if (input.includes('service') || input.includes('repair')) {
-      return 'We offer various automotive services including:\n\n• Oil Changes ($45)\n• Brake Service ($120)\n• AC Service ($85)\n• Tire Rotation ($35)\n• Transmission Service ($200)\n• General Inspection ($60)\n\nWhich service are you interested in?'
-    }
-
-    if (input.includes('hello') || input.includes('hi') || input.includes('help')) {
-      return "Hello! I'm your automotive service assistant. I can help you:\n\n• Check available appointment slots\n• Book service appointments\n• Get information about our services\n• Answer questions about your vehicle\n\nWhat can I help you with today?"
-    }
-
-    return "I understand you're asking about automotive services. While I'm currently in demo mode, I can help you navigate to the appointments page to book services or check your existing appointments. Is there something specific you'd like to know about our services?"
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputValue.trim() || isLoading) return
 
-    const userMessage: MockMessage = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: inputValue,
@@ -57,17 +49,45 @@ export function AIChatbot() {
     setInputValue('')
     setIsLoading(true)
 
-    setTimeout(() => {
-      const assistantMessage: MockMessage = {
+    try {
+      // Call the chatbot API
+      const formData = new FormData()
+      formData.append('message', userMessage.content)
+      formData.append('session_id', sessionId)
+
+      const response = await fetch(`${CHATBOT_API_URL}/chat`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: getMockResponse(userMessage.content),
+        content: data.response || 'Sorry, I could not generate a response.',
         timestamp: new Date(),
       }
 
       setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error('Chatbot API error:', error)
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again later or contact support.',
+        timestamp: new Date(),
+      }
+
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -174,6 +194,7 @@ export function AIChatbot() {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Form */}
