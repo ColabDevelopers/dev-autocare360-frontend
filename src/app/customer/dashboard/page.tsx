@@ -18,24 +18,7 @@ import {
 import { LiveProgress } from '@/components/real-time/live-progress'
 import { useVehicles } from '@/hooks/useVehicles'
 import { useServices } from '@/hooks/useServices'
-
-// Mock data
-const mockUpcomingAppointments = [
-  {
-    id: 1,
-    service: 'Tire Rotation',
-    date: '2024-01-18',
-    time: '10:00 AM',
-    vehicle: 'Toyota Camry 2020',
-  },
-  {
-    id: 2,
-    service: 'AC Service',
-    date: '2024-01-22',
-    time: '2:00 PM',
-    vehicle: 'Honda Civic 2019',
-  },
-]
+import { useAppointments } from '@/hooks/useAppointments'
 
 export default function CustomerDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
@@ -63,9 +46,17 @@ export default function CustomerDashboard() {
   // ✅ Fetch live data using same logic as AdminDashboard
   const { stats, services, loading: servicesLoading, error: servicesError } = useServices()
   const { vehicles, loading: vehiclesLoading, error: vehiclesError } = useVehicles()
+  const {
+    upcomingAppointments,
+    stats: appointmentStats,
+    loading: appointmentsLoading,
+    error: appointmentsError,
+  } = useAppointments()
 
   const totalVehicles = vehicles?.length ?? 0
   const activeServices = stats?.activeServices ?? 0
+  const completedServices = appointmentStats?.completed ?? 0
+  const nextAppointment = appointmentStats?.nextAppointment
 
   // Simulated real-time notifications
   useEffect(() => {
@@ -130,15 +121,25 @@ export default function CustomerDashboard() {
           </CardContent>
         </Card>
 
-        {/* Completed (still hardcoded) */}
+        {/* Completed */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">This year</p>
+            {appointmentsLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : appointmentsError ? (
+              <div className="text-sm text-red-500">Error loading</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{completedServices}</div>
+                <p className="text-xs text-muted-foreground">
+                  {completedServices === 1 ? 'service completed' : 'services completed'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -162,15 +163,33 @@ export default function CustomerDashboard() {
           </CardContent>
         </Card>
 
-        {/* Next Service (hardcoded placeholder) */}
+        {/* Next Service */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Next Service</CardTitle>
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Jan 18</div>
-            <p className="text-xs text-muted-foreground">Tire Rotation</p>
+            {appointmentsLoading ? (
+              <div className="text-sm text-muted-foreground">Loading...</div>
+            ) : appointmentsError ? (
+              <div className="text-sm text-red-500">Error loading</div>
+            ) : nextAppointment ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {new Date(nextAppointment.date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">{nextAppointment.service}</p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">-</div>
+                <p className="text-xs text-muted-foreground">No upcoming service</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -202,28 +221,44 @@ export default function CustomerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {mockUpcomingAppointments.map(appointment => (
-                  <div
-                    key={appointment.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-primary/10 p-2 rounded-lg">
-                        <CalendarIcon className="h-4 w-4 text-primary" />
+              {appointmentsLoading ? (
+                <div className="text-sm text-muted-foreground">Loading appointments...</div>
+              ) : appointmentsError ? (
+                <div className="text-sm text-red-500">Error loading appointments</div>
+              ) : upcomingAppointments.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No upcoming appointments. Book a service to get started!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingAppointments.map(appointment => (
+                    <div
+                      key={appointment.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <CalendarIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{appointment.service}</h4>
+                          <p className="text-sm text-muted-foreground">{appointment.vehicle}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium">{appointment.service}</h4>
-                        <p className="text-sm text-muted-foreground">{appointment.vehicle}</p>
+                      <div className="text-right">
+                        <p className="font-medium">
+                          {new Date(appointment.date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{appointment.time}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{appointment.date}</p>
-                      <p className="text-sm text-muted-foreground">{appointment.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
