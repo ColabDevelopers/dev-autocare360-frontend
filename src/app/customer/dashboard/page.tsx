@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -16,63 +16,24 @@ import {
   Plus,
 } from 'lucide-react'
 import { LiveProgress } from '@/components/real-time/live-progress'
-import { useVehicles } from '@/hooks/useVehicles'
-import { useServices } from '@/hooks/useServices'
-import { useAppointments } from '@/hooks/useAppointments'
+import { useCustomerDashboard } from '@/hooks/useCustomerDashboard'
 
 export default function CustomerDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      message: 'Oil change completed for Toyota Camry',
-      time: '2 hours ago',
-      type: 'success',
-    },
-    {
-      id: 2,
-      message: 'Brake inspection scheduled for tomorrow',
-      time: '1 day ago',
-      type: 'info',
-    },
-    {
-      id: 3,
-      message: 'Custom exhaust project update available',
-      time: '3 hours ago',
-      type: 'update',
-    },
-  ])
 
-  // ✅ Fetch live data using same logic as AdminDashboard
-  const { stats, services, loading: servicesLoading, error: servicesError } = useServices()
-  const { vehicles, loading: vehiclesLoading, error: vehiclesError } = useVehicles()
   const {
+    stats,
+    activeServices,
     upcomingAppointments,
-    stats: appointmentStats,
-    loading: appointmentsLoading,
-    error: appointmentsError,
-  } = useAppointments()
+    nextService,
+    recentNotifications,
+    isLoading,
+    error,
+  } = useCustomerDashboard()
 
-  const totalVehicles = vehicles?.length ?? 0
-  const activeServices = stats?.activeServices ?? 0
-  const completedServices = appointmentStats?.completed ?? 0
-  const nextAppointment = appointmentStats?.nextAppointment
-
-  // Simulated real-time notifications
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNotifications(prev => [
-        {
-          id: Date.now(),
-          message: 'Service progress updated',
-          time: 'Just now',
-          type: 'update',
-        },
-        ...prev.slice(0, 4),
-      ])
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [])
+  const totalVehicles = stats?.totalVehicles ?? 0
+  const activeServicesCount = stats?.activeServices ?? 0
+  const completedServices = stats?.completedServices ?? 0
 
   return (
     <div className="space-y-6">
@@ -106,15 +67,15 @@ export default function CustomerDashboard() {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {servicesLoading ? (
+            {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading...</div>
-            ) : servicesError ? (
+            ) : error ? (
               <div className="text-sm text-red-500">Error loading</div>
             ) : (
               <>
-                <div className="text-2xl font-bold">{activeServices}</div>
+                <div className="text-2xl font-bold">{activeServicesCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  {activeServices > 0 ? `${activeServices} currently active` : 'No active services'}
+                  {activeServicesCount > 0 ? `${activeServicesCount} currently active` : 'No active services'}
                 </p>
               </>
             )}
@@ -128,9 +89,9 @@ export default function CustomerDashboard() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {appointmentsLoading ? (
+            {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading...</div>
-            ) : appointmentsError ? (
+            ) : error ? (
               <div className="text-sm text-red-500">Error loading</div>
             ) : (
               <>
@@ -150,9 +111,9 @@ export default function CustomerDashboard() {
             <Car className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {vehiclesLoading ? (
+            {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading...</div>
-            ) : vehiclesError ? (
+            ) : error ? (
               <div className="text-sm text-red-500">Error loading</div>
             ) : (
               <>
@@ -170,19 +131,19 @@ export default function CustomerDashboard() {
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {appointmentsLoading ? (
+            {isLoading ? (
               <div className="text-sm text-muted-foreground">Loading...</div>
-            ) : appointmentsError ? (
+            ) : error ? (
               <div className="text-sm text-red-500">Error loading</div>
-            ) : nextAppointment ? (
+            ) : nextService ? (
               <>
                 <div className="text-2xl font-bold">
-                  {new Date(nextAppointment.date).toLocaleDateString('en-US', {
+                  {new Date(nextService.date).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground">{nextAppointment.service}</p>
+                <p className="text-xs text-muted-foreground">{nextService.service}</p>
               </>
             ) : (
               <>
@@ -208,7 +169,7 @@ export default function CustomerDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <LiveProgress />
+              <LiveProgress services={activeServices} />
             </CardContent>
           </Card>
 
@@ -221,9 +182,9 @@ export default function CustomerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {appointmentsLoading ? (
+              {isLoading ? (
                 <div className="text-sm text-muted-foreground">Loading appointments...</div>
-              ) : appointmentsError ? (
+              ) : error ? (
                 <div className="text-sm text-red-500">Error loading appointments</div>
               ) : upcomingAppointments.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-4">
@@ -231,7 +192,7 @@ export default function CustomerDashboard() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {upcomingAppointments.map(appointment => (
+                  {upcomingAppointments.map((appointment) => (
                     <div
                       key={appointment.id}
                       className="flex items-center justify-between p-3 border rounded-lg"
@@ -289,28 +250,36 @@ export default function CustomerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {notifications.map((notification, index) => (
-                  <div key={notification.id}>
-                    <div className="flex items-start space-x-3">
-                      <div
-                        className={`w-2 h-2 rounded-full mt-2 ${
-                          notification.type === 'success'
-                            ? 'bg-green-500'
-                            : notification.type === 'info'
-                              ? 'bg-blue-500'
-                              : 'bg-yellow-500'
-                        }`}
-                      />
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
+              {isLoading ? (
+                <div className="text-sm text-muted-foreground">Loading notifications...</div>
+              ) : recentNotifications.length === 0 ? (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No recent updates
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentNotifications.map((notification, index) => (
+                    <div key={notification.id}>
+                      <div className="flex items-start space-x-3">
+                        <div
+                          className={`w-2 h-2 rounded-full mt-2 ${
+                            notification.type === 'success'
+                              ? 'bg-green-500'
+                              : notification.type === 'info'
+                                ? 'bg-blue-500'
+                                : 'bg-yellow-500'
+                          }`}
+                        />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm">{notification.message}</p>
+                          <p className="text-xs text-muted-foreground">{notification.time}</p>
+                        </div>
                       </div>
+                      {index < recentNotifications.length - 1 && <Separator className="my-3" />}
                     </div>
-                    {index < notifications.length - 1 && <Separator className="my-3" />}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

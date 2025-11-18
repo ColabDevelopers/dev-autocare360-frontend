@@ -19,10 +19,16 @@ import { useUnreadCount } from '@/hooks/use-unread-count'
 import { me } from '@/services/auth'
 import { useRouter } from 'next/navigation'
 
-export function CustomerHeader() {
+interface CustomerHeaderProps {
+  onSearch?: (query: string) => void
+  searchQuery?: string
+}
+
+export function CustomerHeader({ onSearch, searchQuery = '' }: CustomerHeaderProps) {
   const router = useRouter()
   const [userEmail, setUserEmail] = useState('')
   const [userName, setUserName] = useState('')
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
   const { count: unreadCount } = useUnreadCount(30000)
 
   useEffect(() => {
@@ -41,6 +47,24 @@ export function CustomerHeader() {
       mounted = false
     }
   }, [])
+
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery)
+  }, [searchQuery])
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value
+    setLocalSearchQuery(query)
+    
+    // Debounce search
+    if (onSearch) {
+      const timeoutId = setTimeout(() => {
+        onSearch(query)
+      }, 300)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }
 
   const getInitials = (name: string, email: string) => {
     if (name) {
@@ -69,6 +93,8 @@ export function CustomerHeader() {
             <Input
               placeholder="Search services, appointments..."
               className="pl-10 w-64 bg-background border-border"
+              value={localSearchQuery}
+              onChange={handleSearchChange}
             />
           </div>
 

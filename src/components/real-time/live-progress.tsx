@@ -6,42 +6,19 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { useWebSocket } from '@/lib/websocket'
 import { Car, Clock, CheckCircle, AlertCircle } from 'lucide-react'
+import type { ActiveService } from '@/services/customerDashboard'
 
-interface ServiceProgress {
-  id: string
-  vehicleInfo: string
-  serviceType: string
-  progress: number
-  status: 'in-progress' | 'completed' | 'pending' | 'delayed'
-  estimatedCompletion: string
-  currentStep: string
-  lastUpdate: string
+interface LiveProgressProps {
+  services: ActiveService[]
 }
 
-export function LiveProgress() {
+export function LiveProgress({ services: initialServices }: LiveProgressProps) {
   const { messages, isConnected } = useWebSocket()
-  const [services, setServices] = useState<ServiceProgress[]>([
-    {
-      id: 'SRV-001',
-      vehicleInfo: '2020 Honda Civic - ABC123',
-      serviceType: 'Oil Change & Inspection',
-      progress: 75,
-      status: 'in-progress',
-      estimatedCompletion: '2:30 PM',
-      currentStep: 'Final inspection',
-      lastUpdate: '2 minutes ago',
-    },
-    {
-      id: 'SRV-002',
-      vehicleInfo: '2019 Toyota Camry - XYZ789',
-      serviceType: 'Brake Service',
-      progress: 45,
-      status: 'in-progress',
-      estimatedCompletion: '4:00 PM',
-      currentStep: 'Installing brake pads',
-      lastUpdate: '5 minutes ago',
-    },
-  ])
+  const [services, setServices] = useState<ActiveService[]>(initialServices)
+
+  useEffect(() => {
+    setServices(initialServices)
+  }, [initialServices])
 
   useEffect(() => {
     const serviceUpdates = messages.filter(msg => msg.type === 'service_update')
