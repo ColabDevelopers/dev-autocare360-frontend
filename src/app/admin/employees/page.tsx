@@ -14,8 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, UserPlus, Clock, CheckCircle, ArrowRight } from 'lucide-react'
-import { listEmployees, type EmployeeResponse, createEmployee, updateEmployee, deleteEmployee } from '@/services/employees'
+import { Search, UserPlus, Clock, CheckCircle } from 'lucide-react'
+import {
+  listEmployees,
+  type EmployeeResponse,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+} from '@/services/employees'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { WorkloadOverview } from '@/components/admin/workload/workload-overview'
+import { WorkloadOverview } from '@/app/admin/workload/layout'
 
 export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -62,7 +68,8 @@ export default function EmployeesPage() {
   }, [])
 
   const filteredEmployees = employees.filter(employee => {
-    const hay = `${employee.name || ''} ${employee.email || ''} ${employee.department || ''}`.toLowerCase()
+    const hay =
+      `${employee.name || ''} ${employee.email || ''} ${employee.department || ''}`.toLowerCase()
     return hay.includes(searchTerm.toLowerCase())
   })
 
@@ -92,7 +99,11 @@ export default function EmployeesPage() {
                 setAddError(null)
                 setAddLoading(true)
                 try {
-                  await createEmployee({ name: newName, email: newEmail, department: newDepartment })
+                  await createEmployee({
+                    name: newName,
+                    email: newEmail,
+                    department: newDepartment,
+                  })
                   setAddOpen(false)
                   setNewName('')
                   setNewEmail('')
@@ -110,20 +121,46 @@ export default function EmployeesPage() {
             >
               {addError && <div className="text-sm text-destructive">{addError}</div>}
               <div className="space-y-2">
-                <label className="text-sm" htmlFor="emp-name">Full Name</label>
-                <Input id="emp-name" value={newName} onChange={e => setNewName(e.target.value)} required />
+                <label className="text-sm" htmlFor="emp-name">
+                  Full Name
+                </label>
+                <Input
+                  id="emp-name"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm" htmlFor="emp-email">Email</label>
-                <Input id="emp-email" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} required />
+                <label className="text-sm" htmlFor="emp-email">
+                  Email
+                </label>
+                <Input
+                  id="emp-email"
+                  type="email"
+                  value={newEmail}
+                  onChange={e => setNewEmail(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-sm" htmlFor="emp-dept">Department</label>
-                <Input id="emp-dept" value={newDepartment} onChange={e => setNewDepartment(e.target.value)} required />
+                <label className="text-sm" htmlFor="emp-dept">
+                  Department
+                </label>
+                <Input
+                  id="emp-dept"
+                  value={newDepartment}
+                  onChange={e => setNewDepartment(e.target.value)}
+                  required
+                />
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={addLoading}>{addLoading ? 'Saving...' : 'Save'}</Button>
+                <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={addLoading}>
+                  {addLoading ? 'Saving...' : 'Save'}
+                </Button>
               </div>
             </form>
           </DialogContent>
@@ -204,78 +241,82 @@ export default function EmployeesPage() {
           {loading ? (
             <div className="text-sm text-muted-foreground">Loading...</div>
           ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Employee No</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEmployees.map(employee => (
-                <TableRow key={employee.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={'/placeholder.svg'} />
-                        <AvatarFallback>
-                          {(employee.name || 'N A')
-                            .split(' ')
-                            .map(n => n[0])
-                            .join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{employee.name || '—'}</div>
-                        <div className="text-sm text-muted-foreground">{employee.email || '—'}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{employee.employeeNo || '—'}</TableCell>
-                  <TableCell>{employee.department || '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant={employee.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                      {employee.status || '—'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditId(employee.id as number)
-                        setEditName(employee.name || '')
-                        setEditDepartment(employee.department || '')
-                        setEditStatus((employee.status as any) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE')
-                        setEditError(null)
-                        setEditOpen(true)
-                      }}
-                    >
-                      Update
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive"
-                      onClick={async () => {
-                        try {
-                          await deleteEmployee(employee.id as number)
-                          setEmployees(prev => prev.filter(e => e.id !== employee.id))
-                        } catch (e: any) {
-                          setError(e?.message || 'Failed to delete employee')
-                        }
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </TableCell>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Employee No</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredEmployees.map(employee => (
+                  <TableRow key={employee.id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={'/placeholder.svg'} />
+                          <AvatarFallback>
+                            {(employee.name || 'N A')
+                              .split(' ')
+                              .map(n => n[0])
+                              .join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{employee.name || '—'}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {employee.email || '—'}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{employee.employeeNo || '—'}</TableCell>
+                    <TableCell>{employee.department || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant={employee.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {employee.status || '—'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditId(employee.id as number)
+                          setEditName(employee.name || '')
+                          setEditDepartment(employee.department || '')
+                          setEditStatus(
+                            (employee.status as any) === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'
+                          )
+                          setEditError(null)
+                          setEditOpen(true)
+                        }}
+                      >
+                        Update
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive"
+                        onClick={async () => {
+                          try {
+                            await deleteEmployee(employee.id as number)
+                            setEmployees(prev => prev.filter(e => e.id !== employee.id))
+                          } catch (e: any) {
+                            setError(e?.message || 'Failed to delete employee')
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
@@ -312,15 +353,31 @@ export default function EmployeesPage() {
           >
             {editError && <div className="text-sm text-destructive">{editError}</div>}
             <div className="space-y-2">
-              <label className="text-sm" htmlFor="edit-name">Full Name</label>
-              <Input id="edit-name" value={editName} onChange={e => setEditName(e.target.value)} required />
+              <label className="text-sm" htmlFor="edit-name">
+                Full Name
+              </label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm" htmlFor="edit-dept">Department</label>
-              <Input id="edit-dept" value={editDepartment} onChange={e => setEditDepartment(e.target.value)} required />
+              <label className="text-sm" htmlFor="edit-dept">
+                Department
+              </label>
+              <Input
+                id="edit-dept"
+                value={editDepartment}
+                onChange={e => setEditDepartment(e.target.value)}
+                required
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm" htmlFor="edit-status">Status</label>
+              <label className="text-sm" htmlFor="edit-status">
+                Status
+              </label>
               <select
                 id="edit-status"
                 className="bg-background border border-border rounded-md h-9 px-3 text-sm w-full"
@@ -332,8 +389,12 @@ export default function EmployeesPage() {
               </select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={editLoading}>{editLoading ? 'Saving...' : 'Save'}</Button>
+              <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editLoading}>
+                {editLoading ? 'Saving...' : 'Save'}
+              </Button>
             </div>
           </form>
         </DialogContent>

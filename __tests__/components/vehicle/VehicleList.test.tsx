@@ -4,7 +4,7 @@
 
 // Export a small mock dataset so other dev utilities can import it while tests are
 // not yet configured.
-import { Vehicle } from '@/types/vehicle'
+import { Vehicle } from '@/src/types/vehicle'
 
 export const mockVehicles: Vehicle[] = [
   { id: '1', userId: 'u1', make: 'Toyota', model: 'Camry', year: 2020, createdAt: '', updatedAt: '', vin: 'VIN1' },
