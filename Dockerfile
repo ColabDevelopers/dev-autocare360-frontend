@@ -1,46 +1,43 @@
-# Stage 1: Build
+# ---------- STAGE 1: BUILD ----------
 FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files
+# Copy only dependency files first (cache layer)
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (fast cached layer)
+RUN pnpm fetch
 
-# Copy source code
+# Copy the rest of the source code
 COPY . .
 
-# Build the application
-RUN pnpm build
+# Build Next.js (standalone output)
+RUN pnpm install --offline && pnpm build
 
-# Stage 2: Runtime
+
+# ---------- STAGE 2: RUNTIME ----------
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
 # Create non-root user
 RUN addgroup --system nextjs && adduser --system nextjs --ingroup nextjs
-USER nextjs
 
-# Copy built application
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/next.config.mjs ./
+# Set environment
+ENV NODE_ENV=production
 
-# Optional: If you use environment variables, uncomment this line
-# ENV NODE_ENV=production
+# Copy standalone Next.js output
+COPY --from=builder --chown=nextjs:nextjs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 USER nextjs
 
 EXPOSE 3000
 
-# Health check (simplified and lightweight)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD wget -qO- http://localhost:3000/ || exit 1
 
-CMD ["pnpm", "start"]
+CMD ["node", "server.js"]
