@@ -21,6 +21,9 @@ RUN pnpm build
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Create non-root user
 RUN addgroup --system nextjs && adduser --system nextjs --ingroup nextjs
 USER nextjs

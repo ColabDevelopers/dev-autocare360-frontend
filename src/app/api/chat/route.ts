@@ -109,7 +109,6 @@ export async function POST(req: Request) {
       checkAvailability: checkAvailabilityTool,
       bookAppointment: bookAppointmentTool,
     },
-    maxSteps: 5,
   })
 
   return result.toUIMessageStreamResponse()
