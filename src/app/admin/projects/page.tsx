@@ -91,6 +91,15 @@ export default function ProjectsPage() {
         })
       }
       
+      // Debug: log assigned fields for each project to help trace assignment mapping
+      console.log('📦 Projects fetched (id -> assigned):', response.map((p: any) => ({
+        id: p.id,
+        assignedEmployeeId: p.assignedEmployeeId ?? p.assigned_employee_id ?? null,
+        technician: p.technician ?? null,
+        technicianId: p.technicianId ?? null,
+        customerName: p.customerName
+      })))
+
       setProjects(response)
     } catch (error) {
       console.error('Error fetching projects:', error)
@@ -249,9 +258,18 @@ export default function ProjectsPage() {
       
       await updateProjectStatus(selectedProject.id, updatePayload)
       console.log('✅ Project updated successfully')
-      
+
+      // Fetch the updated project details directly to verify backend response
+      try {
+        const updated = await getProjectDetails(selectedProject.id)
+        console.log('📣 Updated project details after assignment:', updated)
+      } catch (detErr) {
+        console.warn('⚠️ Could not fetch updated project details:', detErr)
+      }
+
       await fetchProjects()
       await fetchEmployeesWithDepartments() // Refresh department info
+      await fetchEmployees() // Also refresh users list to ensure lookup works immediately
       console.log('🔄 Projects and departments refreshed')
       
       toast({
@@ -367,20 +385,28 @@ export default function ProjectsPage() {
                        (project as any).assignedEmployee?.id
 
     if (assignedId) {
-      // Handle case where assignedId might be a string number
-      const employeeId = typeof assignedId === 'string' ? parseInt(assignedId) : assignedId
-      
-      // Check if it's a valid number (not a date string)
-      if (isNaN(employeeId) || employeeId.toString().includes('-')) {
-        return null
+      // Normalize assigned id to a number when possible (handles string ids returned by some APIs)
+      const employeeId = typeof assignedId === 'string' && assignedId.trim() !== '' ? parseInt(assignedId, 10) : assignedId
+
+      // If it's not a number after normalization, bail out
+      if (!employeeId || (typeof employeeId === 'number' && isNaN(employeeId))) return null
+
+      // Try flexible matching: support number or string ids from different APIs
+      const matchById = (item: any) => {
+        if (item == null) return false
+        try {
+          return String(item.id) === String(employeeId) || Number(item.id) === Number(employeeId)
+        } catch (e) {
+          return false
+        }
       }
-      
+
       // First try to find employee in users list
-      let employee = employees.find(emp => emp.id === employeeId)
-      
-      // If not found in users list (due to 403 error), try employees with departments
+      let employee = employees.find(emp => matchById(emp))
+
+      // If not found in users list, try employees with departments
       if (!employee && employeesWithDepartments.length > 0) {
-        const empWithDept = employeesWithDepartments.find(emp => emp.id === employeeId)
+        const empWithDept = employeesWithDepartments.find(emp => matchById(emp))
         if (empWithDept) {
           return {
             name: empWithDept.name,
@@ -389,9 +415,9 @@ export default function ProjectsPage() {
           }
         }
       }
-      
+
       if (employee) {
-        const department = getEmployeeDepartment(employee.email)
+        const department = getEmployeeDepartment((employee as any).email)
         return {
           name: employee.name,
           id: employee.id,
