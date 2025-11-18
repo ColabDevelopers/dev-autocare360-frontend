@@ -1,184 +1,133 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCapacityMetrics, getAllWorkloads, type CapacityMetrics } from '@/services/workload'
+import {
+  CapacityDistributionDto,
+  TeamStatusDto,
+} from "@/services/workload";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell,
-  Legend,
-} from 'recharts'
-import { Users, TrendingUp, AlertCircle } from 'lucide-react'
+} from "recharts";
 
-export function CapacityChart() {
-  const [metrics, setMetrics] = useState<CapacityMetrics | null>(null)
-  const [workloads, setWorkloads] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+interface CapacityChartProps {
+  data: CapacityDistributionDto[];
+  teamStatus: TeamStatusDto | null;
+}
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      try {
-        const [metricsData, workloadData] = await Promise.all([
-          getCapacityMetrics(),
-          getAllWorkloads(),
-        ])
-        setMetrics(metricsData)
-        setWorkloads(workloadData)
-      } catch (error) {
-        console.error('Failed to load capacity data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
-  }, [])
+export function CapacityChart({ data, teamStatus }: CapacityChartProps) {
+  const safeData =
+    data?.map((d) => ({
+      name: d.name,
+      capacity: d.value ?? 0,
+      status: (d.status || "").toUpperCase(),
+    })) ?? [];
 
-  if (loading || !metrics) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="h-6 bg-gray-200 rounded animate-pulse" />
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 bg-gray-200 rounded animate-pulse" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Prepare data for charts
-  const capacityData = workloads.map((emp) => ({
-    name: emp.name.split(' ')[0], // First name only
-    capacity: emp.capacityUtilization,
-    hours: emp.hoursLoggedThisWeek,
-  }))
-
-  const statusData = [
-    { name: 'Available', value: metrics.availableEmployees, color: '#10b981' },
-    { name: 'Busy', value: metrics.busyEmployees, color: '#f59e0b' },
-    { name: 'Overloaded', value: metrics.overloadedEmployees, color: '#ef4444' },
-  ]
+  const available = teamStatus?.availableCount ?? 0;
+  const busy = teamStatus?.busyCount ?? 0;
+  const overloaded = teamStatus?.overloadedCount ?? 0;
+  const total = available + busy + overloaded;
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Capacity Distribution */}
+    <div className="grid gap-4 lg:grid-cols-[3fr,2fr]">
       <Card>
         <CardHeader>
-          <CardTitle>Employee Capacity Distribution</CardTitle>
-          <CardDescription>Current workload across all employees</CardDescription>
+          <CardTitle className="text-sm">
+            Employee Capacity Distribution
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Current workload across all employees
+          </p>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={capacityData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Capacity %', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Bar 
-                dataKey="capacity" 
-                fill="#3b82f6"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent className="h-64">
+          {safeData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-muted-foreground border border-dashed rounded-md">
+              No workload data yet. Assign tasks to employees to see capacity.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={safeData}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => `${v}%`}
+                  domain={[0, 120]}
+                />
+                <Tooltip
+                  formatter={(value: any) => `${value}%`}
+                  labelStyle={{ fontSize: 12 }}
+                  contentStyle={{ fontSize: 12 }}
+                />
+                <Bar dataKey="capacity" radius={[4, 4, 0, 0]}>
+                  {safeData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        entry.status === "OVERLOADED"
+                          ? "#ef4444"
+                          : entry.status === "BUSY"
+                          ? "#f97316"
+                          : "#22c55e"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
-      {/* Status Distribution */}
       <Card>
         <CardHeader>
-          <CardTitle>Team Status Overview</CardTitle>
-          <CardDescription>Employee availability status</CardDescription>
+          <CardTitle className="text-sm">Team Status Overview</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Employee availability status
+          </p>
         </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={statusData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: ${value}`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {statusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-          
-          {/* Summary Stats */}
-          <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-2xl font-bold text-green-600">{metrics.availableEmployees}</p>
-              <p className="text-xs text-muted-foreground">Available</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-yellow-600">{metrics.busyEmployees}</p>
-              <p className="text-xs text-muted-foreground">Busy</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-red-600">{metrics.overloadedEmployees}</p>
-              <p className="text-xs text-muted-foreground">Overloaded</p>
-            </div>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <StatusPill label="Available" value={available} color="green" />
+            <StatusPill label="Busy" value={busy} color="amber" />
+            <StatusPill label="Overloaded" value={overloaded} color="red" />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Key Metrics */}
-      <Card className="md:col-span-2">
-        <CardHeader>
-          <CardTitle>Workload Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center space-x-3">
-              <Users className="h-8 w-8 text-blue-500" />
-              <div>
-                <p className="text-2xl font-bold">{metrics.totalEmployees}</p>
-                <p className="text-sm text-muted-foreground">Total Employees</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <TrendingUp className="h-8 w-8 text-green-500" />
-              <div>
-                <p className="text-2xl font-bold">{metrics.averageCapacity}%</p>
-                <p className="text-sm text-muted-foreground">Avg Capacity</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <AlertCircle className="h-8 w-8 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold">{metrics.totalActiveWorkItems}</p>
-                <p className="text-sm text-muted-foreground">Active Work Items</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Users className="h-8 w-8 text-orange-500" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {Math.round((metrics.busyEmployees / metrics.totalEmployees) * 100)}%
-                </p>
-                <p className="text-sm text-muted-foreground">Utilization Rate</p>
-              </div>
+          <div className="border-t border-border pt-3 text-xs text-muted-foreground">
+            <div className="flex justify-between">
+              <span>Total Employees</span>
+              <span>{total}</span>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
+}
+
+interface StatusPillProps {
+  label: string;
+  value: number;
+  color: "green" | "amber" | "red";
+}
+
+function StatusPill({ label, value, color }: StatusPillProps) {
+  const map: Record<typeof color, string> = {
+    green: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+    amber: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+    red: "bg-red-500/10 text-red-400 border-red-500/30",
+  };
+
+  return (
+    <div
+      className={`border rounded-lg py-2 px-2 flex flex-col items-center justify-center ${map[color]}`}
+    >
+      <div className="text-[11px]">{label}</div>
+      <div className="text-base font-semibold">{value}</div>
+    </div>
+  );
 }

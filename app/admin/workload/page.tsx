@@ -1,70 +1,164 @@
-'use client'
+"use client";
 
-import { WorkloadOverview } from '@/components/admin/workload/workload-overview'
-import { CapacityChart } from '@/components/admin/workload/capacity-chart'
-import { TaskAssignment } from '@/components/admin/workload/task-assignment'
-import { EmployeeSchedule } from '@/components/admin/workload/employee-schedule'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { RefreshCw, Download } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from "react";
+import {
+  fetchCapacityDistribution,
+  fetchEmployeeSchedule,
+  fetchEmployeeWorkloads,
+  fetchScheduleEmployees,
+  fetchTeamStatus,
+  fetchUnassignedTasks,
+  fetchWorkloadSummary,
+  CapacityDistributionDto,
+  EmployeeListDto,
+  EmployeeScheduleDto,
+  TeamStatusDto,
+  UnassignedTaskDto,
+  WorkloadResponse,
+  WorkloadSummaryDto,
+} from "@/services/workload";
+import { WorkloadOverview } from "@/components/admin/workload/workload-overview";
+import { CapacityChart } from "@/components/admin/workload/capacity-chart";
+import { EmployeeSchedule } from "@/components/admin/workload/employee-schedule";
+import { TaskAssignment } from "@/components/admin/workload/task-assignment";
+import { Button } from "@/components/ui/button";
 
-export default function WorkloadMonitoringPage() {
-  const [refreshing, setRefreshing] = useState(false)
+export default function AdminWorkloadPage() {
+  const [summary, setSummary] = useState<WorkloadSummaryDto | null>(null);
+  const [employees, setEmployees] = useState<WorkloadResponse[]>([]);
+  const [capacityData, setCapacityData] = useState<CapacityDistributionDto[]>(
+    []
+  );
+  const [teamStatus, setTeamStatus] = useState<TeamStatusDto | null>(null);
+  const [unassignedTasks, setUnassignedTasks] = useState<UnassignedTaskDto[]>(
+    []
+  );
+  const [scheduleEmployees, setScheduleEmployees] = useState<EmployeeListDto[]>(
+    []
+  );
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(
+    null
+  );
+  const [selectedSchedule, setSelectedSchedule] =
+    useState<EmployeeScheduleDto | null>(null);
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    // Trigger refresh in child components by forcing re-mount
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setRefreshing(false)
-    window.location.reload() // Simple refresh - you can implement better state management
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadAll = async () => {
+    try {
+      setRefreshing(true);
+      const [
+        summaryRes,
+        employeesRes,
+        capacityRes,
+        teamStatusRes,
+        unassignedRes,
+        scheduleEmployeesRes,
+      ] = await Promise.all([
+        fetchWorkloadSummary(),
+        fetchEmployeeWorkloads(),
+        fetchCapacityDistribution(),
+        fetchTeamStatus(),
+        fetchUnassignedTasks(),
+        fetchScheduleEmployees(),
+      ]);
+
+      setSummary(summaryRes);
+      setEmployees(employeesRes);
+      setCapacityData(capacityRes);
+      setTeamStatus(teamStatusRes);
+      setUnassignedTasks(unassignedRes);
+      setScheduleEmployees(scheduleEmployeesRes);
+
+      // If no employee selected yet, pick first from schedule list
+      if (!selectedEmployeeId && scheduleEmployeesRes.length > 0) {
+        const firstId = scheduleEmployeesRes[0].id;
+        setSelectedEmployeeId(firstId);
+        const schedule = await fetchEmployeeSchedule(firstId, 7);
+        setSelectedSchedule(schedule);
+      } else if (selectedEmployeeId) {
+        const schedule = await fetchEmployeeSchedule(selectedEmployeeId, 7);
+        setSelectedSchedule(schedule);
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSelectScheduleEmployee = async (id: number) => {
+    setSelectedEmployeeId(id);
+    const schedule = await fetchEmployeeSchedule(id, 7);
+    setSelectedSchedule(schedule);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-6 w-56 bg-muted animate-pulse rounded-md" />
+        <div className="h-40 bg-muted animate-pulse rounded-md" />
+        <div className="h-64 bg-muted animate-pulse rounded-md" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Workload Monitoring</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Workload Monitoring
+          </h1>
+          <p className="text-sm text-muted-foreground">
             Monitor employee workload and optimize task distribution
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
+          <Button size="sm" variant="outline" onClick={loadAll} disabled={refreshing}>
+            {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>
 
-      {/* Workload Overview Cards */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Team Overview</h2>
-        <WorkloadOverview />
-      </div>
+      <section>
+        <h2 className="text-sm font-medium mb-3">Team Overview</h2>
+        <WorkloadOverview
+          employees={employees}
+          summary={summary}
+          selectedId={selectedEmployeeId}
+          onSelect={handleSelectScheduleEmployee}
+        />
+      </section>
 
-      {/* Capacity Charts */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Capacity Analytics</h2>
-        <CapacityChart />
-      </div>
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium">Capacity Analytics</h2>
+        <CapacityChart data={capacityData} teamStatus={teamStatus} />
+      </section>
 
-      {/* Task Assignment */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Task Management</h2>
-        <TaskAssignment />
-      </div>
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium">Task Management</h2>
+        <TaskAssignment
+          tasks={unassignedTasks}
+          employees={scheduleEmployees}
+          onChanged={loadAll}
+        />
+      </section>
 
-      {/* Employee Schedule */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Employee Schedules</h2>
-        <EmployeeSchedule />
-      </div>
+      <section className="space-y-4">
+        <h2 className="text-sm font-medium">Employee Schedules</h2>
+        <EmployeeSchedule
+          employees={scheduleEmployees}
+          selectedEmployeeId={selectedEmployeeId}
+          schedule={selectedSchedule}
+          onSelectEmployee={handleSelectScheduleEmployee}
+        />
+      </section>
     </div>
-  )
+  );
 }
