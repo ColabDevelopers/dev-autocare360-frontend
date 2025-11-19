@@ -98,13 +98,13 @@ export function LiveProgress({ services: initialServices }: LiveProgressProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
+            {/* <div>
               <div className="flex justify-between text-sm mb-2">
                 <span>Progress</span>
                 <span>{service.progress}%</span>
               </div>
               <Progress value={service.progress} className="h-2" />
-            </div>
+            </div> */}
 
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Current Step:</span>

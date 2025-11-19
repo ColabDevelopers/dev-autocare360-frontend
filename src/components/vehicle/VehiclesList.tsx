@@ -19,22 +19,33 @@ export default function VehiclesList() {
 
   // 🔹 ADD new vehicle
   const handleAdd = async () => {
+    // Validate required fields
+    if (!form.make || !form.model || !form.year) {
+      toast.error('Please fill in all required fields (Make, Model, Year)')
+      return
+    }
+
     try {
-      // backend requires VIN
+      // backend may require VIN, generate if needed
       const payload = {
-        ...form,
+        make: form.make.trim(),
+        model: form.model.trim(),
         year: Number(form.year),
+        plateNumber: form.plateNumber?.trim() || null,
+        color: form.color?.trim() || null,
         vin: crypto.randomUUID().replace(/-/g, '').slice(0, 17), // generate fake VIN
       }
 
+      console.log('Creating vehicle with payload:', payload)
       const newVehicle = await vehiclesApi.createVehicle(payload)
       setVehicles?.(prev => [...prev, newVehicle])
 
       toast.success('Vehicle added successfully! 🚗')
       closeModal()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add vehicle:', err)
-      toast.error('Failed to add vehicle.')
+      const errorMessage = err?.message || 'Failed to add vehicle. Please try again.'
+      toast.error(errorMessage)
     }
   }
 
@@ -42,17 +53,32 @@ export default function VehiclesList() {
   const handleUpdate = async () => {
     if (!editingVehicle) return
 
+    // Validate required fields
+    if (!form.make || !form.model || !form.year) {
+      toast.error('Please fill in all required fields (Make, Model, Year)')
+      return
+    }
+
     try {
-      const payload = { ...form, year: Number(form.year) }
+      const payload = {
+        make: form.make.trim(),
+        model: form.model.trim(),
+        year: Number(form.year),
+        plateNumber: form.plateNumber?.trim() || null,
+        color: form.color?.trim() || null,
+      }
+      
+      console.log('Updating vehicle with payload:', payload)
       const updatedVehicle = await vehiclesApi.updateVehicle(editingVehicle.id, payload)
 
       setVehicles?.(prev => prev.map(v => (v.id === editingVehicle.id ? updatedVehicle : v)))
 
       toast.success('Vehicle updated successfully ✅')
       closeModal()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update vehicle:', err)
-      toast.error('Failed to update vehicle.')
+      const errorMessage = err?.message || 'Failed to update vehicle. Please try again.'
+      toast.error(errorMessage)
     }
   }
 
@@ -61,12 +87,14 @@ export default function VehiclesList() {
     if (!confirm('Are you sure you want to delete this vehicle?')) return
 
     try {
+      console.log('Deleting vehicle:', id)
       await vehiclesApi.deleteVehicle(id)
       setVehicles?.(prev => prev.filter(v => v.id !== id))
       toast.success('Vehicle deleted successfully 🗑️')
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete vehicle:', err)
-      toast.error('Failed to delete vehicle.')
+      const errorMessage = err?.message || 'Failed to delete vehicle. Please try again.'
+      toast.error(errorMessage)
     }
   }
 
@@ -97,6 +125,8 @@ export default function VehiclesList() {
     plateNumber: 'License Plate Number',
     color: 'Color',
   }
+
+  const requiredFields = ['make', 'model', 'year']
 
   return (
     <div className="p-4 text-white">
@@ -160,6 +190,7 @@ export default function VehiclesList() {
                 <div key={field}>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     {fieldLabels[field]}
+                    {requiredFields.includes(field) && <span className="text-red-500 ml-1">*</span>}
                   </label>
                   <input
                     type={field === 'year' ? 'number' : 'text'}
@@ -167,6 +198,7 @@ export default function VehiclesList() {
                     value={(form as any)[field]}
                     onChange={e => setForm({ ...form, [field]: e.target.value })}
                     className="w-full p-2 rounded-md bg-[#333] text-white outline-none focus:ring-2 focus:ring-blue-500"
+                    required={requiredFields.includes(field)}
                   />
                 </div>
               ))}
